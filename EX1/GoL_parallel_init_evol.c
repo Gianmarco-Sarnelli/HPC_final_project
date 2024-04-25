@@ -101,7 +101,7 @@ void static_evolution(unsigned char *local_playground, int xsize, int my_chunk, 
 		free(updated_playground); 
 
 		if(gen % s == 0){
-		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots_parallel_static/snapshot", gen, my_offset); //CHECK IT!!!!
+		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots/parallel_static/snapshot", gen, my_offset); //CHECK IT!!!!
 		}
 
 	} // End cycle on gen
@@ -110,7 +110,7 @@ void static_evolution(unsigned char *local_playground, int xsize, int my_chunk, 
 	free(bottom_ghost_row);
 
 	if(s != n){
-		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots_parallel_static/snapshot", n, my_offset);
+		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots/parallel_static/snapshot", n, my_offset);
 	}
 	*/return
 }
@@ -435,7 +435,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 		}
 		
 		if(gen % s == 0){
-			write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots_parallel_ordered/snapshot", gen, my_offset);
+			write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots/parallel_ordered/snapshot", gen, my_offset);
 		}
 		
 		// The MPI ends by sending the last row, without it the new gen wouldn't start. The tag is 0
@@ -450,7 +450,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 	free(l_ind_dist);
 
 	if(s != n){
-		write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots_parallel_ordered/snapshot", n, my_offset);
+		write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots/parallel_ordered/snapshot", n, my_offset);
 	}
 }
 
