@@ -368,7 +368,7 @@ void static_evolution( char *mygrid, int xsize, int ysize, int n, int s){
 		
 	if (s == n){			
 		//snapshot name
-		snprintf(fname, 46 "./Snapshots_serial_static/snapshot_%05d.pgm", n);
+		snprintf(fname, 46, "./Snapshots_serial_static/snapshot_%05d.pgm", n);
 		
 		//writing the temporary grid
 		for (int i=0; i<xsize*ysize; i++){
