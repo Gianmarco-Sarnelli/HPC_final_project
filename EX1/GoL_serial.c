@@ -191,7 +191,7 @@ void ordered_evolution(unsigned char *mygrid, int xsize, int ysize, int n, int s
 	
 	//variables for the snapshot file
 	char * fname;
-	fname = (char*) malloc(100);
+	fname = (char*) malloc(46);
 	
 	char nei; // number of live neighbours
 	
@@ -248,7 +248,7 @@ void ordered_evolution(unsigned char *mygrid, int xsize, int ysize, int n, int s
 		
 		if (gen%s == 0){		
 			//snapshot name
-			snprintf(fname, 100, "./Snapshots_serial_ordered/snapshot_%05d.pgm", gen);
+			snprintf(fname, 46, "./Snapshots_serial_ordered/snapshot_%05d.pgm", gen);
 			
 			write_pgm_image( mygrid, 1, xsize, ysize, fname);
 			}
@@ -256,7 +256,7 @@ void ordered_evolution(unsigned char *mygrid, int xsize, int ysize, int n, int s
 	
 	if (s == n){		
 		//snapshot name
-		snprintf(fname, 100, "./Snapshots_serial_ordered/snapshot_%05d.pgm", n);
+		snprintf(fname, 46, "./Snapshots_serial_ordered/snapshot_%05d.pgm", n);
 		
 		write_pgm_image( mygrid, 1, xsize, ysize, fname);
 	}
@@ -277,7 +277,7 @@ void static_evolution( char *mygrid, int xsize, int ysize, int n, int s){
 	//variables for the snapshot file
 	char * fname;
 	char * snap_grid;
-	fname = (char*) malloc(100);
+	fname = (char*) malloc(46);
 	snap_grid = (char*) malloc(xsize*ysize);
 	
 	// alternating positions of the current and next states of the system
@@ -353,7 +353,7 @@ void static_evolution( char *mygrid, int xsize, int ysize, int n, int s){
 		
 		if (gen%s == 0){			
 			//snapshot name
-			snprintf(fname, 100, "./Snapshots_serial_static/snapshot_%05d.pgm", gen);
+			snprintf(fname, 46, "./Snapshots_serial_static/snapshot_%05d.pgm", gen);
 			
 			//writing the temporary grid
 			for (int i=0; i<xsize*ysize; i++){
@@ -368,7 +368,7 @@ void static_evolution( char *mygrid, int xsize, int ysize, int n, int s){
 		
 	if (s == n){			
 		//snapshot name
-		snprintf(fname, 100, "./Snapshots_serial_static/snapshot_%05d.pgm", n);
+		snprintf(fname, 46 "./Snapshots_serial_static/snapshot_%05d.pgm", n);
 		
 		//writing the temporary grid
 		for (int i=0; i<xsize*ysize; i++){
