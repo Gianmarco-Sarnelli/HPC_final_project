@@ -32,7 +32,11 @@ void write_pgm_image( char *image, int maxval, int xsize, int ysize, const char 
 
 	FILE* image_file; 
 	image_file = fopen(image_name, "wb");
-
+	
+	if(image_file == NULL)
+		printf("The file didn't open!\n");
+	
+	
 	// Writing header
 	// The header's format is as follows, all in ASCII.
 	// "whitespace" is either a blank or a TAB or a CF or a LF
@@ -244,7 +248,7 @@ void ordered_evolution(unsigned char *mygrid, int xsize, int ysize, int n, int s
 		
 		if (gen%s == 0){		
 			//snapshot name
-			snprintf(fname, 100, "./Snapshot_serial_ordered/snapshot_%05d.pgm", gen);
+			snprintf(fname, 100, "./Snapshots_serial_ordered/snapshot_%05d.pgm", gen);
 			
 			write_pgm_image( mygrid, 1, xsize, ysize, fname);
 			}
@@ -252,7 +256,7 @@ void ordered_evolution(unsigned char *mygrid, int xsize, int ysize, int n, int s
 	
 	if (s == n){		
 		//snapshot name
-		snprintf(fname, 100, "./Snapshot_serial_ordered/snapshot_%05d.pgm", n);
+		snprintf(fname, 100, "./Snapshots_serial_ordered/snapshot_%05d.pgm", n);
 		
 		write_pgm_image( mygrid, 1, xsize, ysize, fname);
 	}
@@ -349,7 +353,7 @@ void static_evolution( char *mygrid, int xsize, int ysize, int n, int s){
 		
 		if (gen%s == 0){			
 			//snapshot name
-			snprintf(fname, 100, "./Snapshot_serial_static/snapshot_%05d.pgm", gen);
+			snprintf(fname, 100, "./Snapshots_serial_static/snapshot_%05d.pgm", gen);
 			
 			//writing the temporary grid
 			for (int i=0; i<xsize*ysize; i++){
@@ -364,7 +368,7 @@ void static_evolution( char *mygrid, int xsize, int ysize, int n, int s){
 		
 	if (s == n){			
 		//snapshot name
-		snprintf(fname, 100, "./Snapshot_serial_static/snapshot_%05d.pgm", n);
+		snprintf(fname, 100, "./Snapshots_serial_static/snapshot_%05d.pgm", n);
 		
 		//writing the temporary grid
 		for (int i=0; i<xsize*ysize; i++){
