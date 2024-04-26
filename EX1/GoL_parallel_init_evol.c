@@ -109,8 +109,8 @@ void static_evolution(unsigned char *local_playground, int xsize, int my_chunk, 
 	free(top_ghost_row);
 	free(bottom_ghost_row);
 
-	if(s != n){
-		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots/parallel_static/snapshot", n, my_offset);
+	if(s == n){
+		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots/parallel_static/snapshot", n-1, my_offset);
 	}
 	*/return
 }
@@ -449,8 +449,8 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 	free(l_ind_pos);
 	free(l_ind_dist);
 
-	if(s != n){
-		write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots/parallel_ordered/snapshot", n, my_offset);
+	if(s == n){
+		write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots/parallel_ordered/snapshot", n-1, my_offset);
 	}
 }
 

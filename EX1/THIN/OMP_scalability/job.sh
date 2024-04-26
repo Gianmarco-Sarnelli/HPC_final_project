@@ -9,7 +9,7 @@
 #SBATCH --nodelist=thin[007]
 
 
-# MODIFY!!!!!
+#########################################					 MODIFY!!!!!
 
 module load openMPI/4.1.5/gnu/12.2.1 
 policy=close

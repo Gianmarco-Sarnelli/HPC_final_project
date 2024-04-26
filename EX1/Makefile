@@ -1,34 +1,33 @@
-# MODIFY!!!!!!!!!!!!
+
+OBJECTS=GoL_parallel_main.o GoL_parallel_init_evol.o GoL_parallel_read_write.o
+loc=$(pwd)
 
 
-CC=mpicc -O3 -fopenmp -march=native -g -Iinclude
-loc = $(location)
-OBJDIR=obj
-INCDIR=include
+parallel.x: $(OBJECTS)
+	mpicc -fopenmp -march=native -g -Iinclude &(OBJECTS) -o parallel
 
-RW=$(OBJDIR)/read_write_pgm.o
-STATIC= $(OBJDIR)/static_evolution.o
-ORDERED= $(OBJDIR)/ordered_evolution.o
-OBJECTS=main.o $(RW) $(STATIC) $(ORDERED)
+GoL_parallel_main.o: GoL_parallel_main.c
+	mpicc -fopenmp -march=native -g -Iinclude -c GoL_parallel_main.c
+	
+GoL_parallel_init_evol.o: GoL_parallel_init_evol.c
+	mpicc -fopenmp -march=native -g -Iinclude -c GoL_parallel_init_evol.c
+
+GoL_parallel_read_write.o: GoL_parallel_read_write.c
+	mpicc -fopenmp -march=native -g -Iinclude -c GoL_parallel_read_write.c
+	
+	
+serial.x: GoL_serial.c
+	mpicc -march=native -g GoL_serial.c -o serial.x
+	
+
+clean:
+	rm $(loc)/*.x $(loc)/*.o
 
 
-par: $(loc)/main.x
 
 
-$(loc)/main.x: $(OBJECTS)
-	$(CC) -lm $(OBJECTS) -o $@
 
-main.o: main.c
-	$(CC) -c main.c
 
-$(OBJDIR)/%.o: src/%.c $(INCDIR)/%.h
-	mkdir -p $(OBJDIR)
-	$(CC) -c $< -o $@
 
-clean: x_clean clean_img
 
-x_clean:
-	rm -rf $(loc)/*.x $(OBJDIR)/*.o $(OBJDIR)/*.a 
 
-clean_img:
-	rm $(loc)/*.pgm

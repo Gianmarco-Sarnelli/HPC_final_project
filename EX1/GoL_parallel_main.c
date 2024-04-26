@@ -14,8 +14,6 @@
 
 
 struct timeval start_time, end_time;
-#define XWIDTH 256
-#define YWIDTH 256
 #define INIT 1
 #define RUN  2
 
@@ -145,9 +143,13 @@ int main ( int argc, char **argv ) {
 		free(playground);
 		
 		if (my_rank == 0) {
-			FILE *fp = fopen("timing.csv", "a"); 
-			fprintf(fp, "%f,", mean_time);
-			fclose(fp);
+			// 		MODIFY THIS!!!!!!!
+			
+			printf("%f", mean_time);
+		
+			//FILE *fp = fopen("timing.csv", "a"); 
+			//fprintf(fp, "%f,", mean_time);
+			//fclose(fp);
 		}
 
 	}

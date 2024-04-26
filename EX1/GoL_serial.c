@@ -874,7 +874,7 @@ int main ( int argc, char **argv )
 			
 			double time = CPU_TIME - t_start;
 			printf("elapsed time ordered: %f sec\n\n", time);
-			write_pgm_image((void *)my_grid_o, 1, k, k, "test_dump_ordered.pgm");
+			//write_pgm_image((void *)my_grid_o, 1, k, k, "test_dump_ordered.pgm");
 			free(my_grid_o);
 		}
 		
@@ -901,7 +901,7 @@ int main ( int argc, char **argv )
 			
 			double time = CPU_TIME - t_start;
 			printf("elapsed time static: %f sec\n\n", time);
-			write_pgm_image((void *)my_grid_s, 1, k, k, "test_dump_static.pgm");
+			//write_pgm_image((void *)my_grid_s, 1, k, k, "test_dump_static.pgm");
 			free(my_grid_s);
 		}
 		
