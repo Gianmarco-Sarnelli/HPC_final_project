@@ -173,7 +173,7 @@ int sanity_check_ordered(unsigned char *my_grid, int xsize, int my_chunk, unsign
                         pos = y*xsize + x;   //Current position
                         nei = 0;
                         left_move = -1 + (xsize * (x == 0)); //This will make it go up a row if on the left border
-                        right_move = +1 - (xsize * (x == xsize-1)); //This will make it go down a row if on the right border
+                        right_move = +1 - (xsize * (x == (xsize-1))); //This will make it go down a row if on the right border
 
                         //computing the number of neighbours
                         if (y==0){  // Using the top_ghost_row
@@ -207,6 +207,7 @@ int sanity_check_ordered(unsigned char *my_grid, int xsize, int my_chunk, unsign
 
                         if ( my_grid[pos] != (nei<<2) + (prev<<1) + my_current){
                                 errors++;
+                                printf("The value of the grid at position %d is: %d   The value in the check function is: %d\n", pos, my_grid[pos], (nei<<2) + (prev<<1) + my_current);
                         }
                 }
         }
@@ -255,12 +256,15 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 	// Recv(top_ghost_row) (blocking)
 	// IRecv(bottom_ghost_row) (handle "request")
 	// 	First row
-	// ISend(first row) (no handle)
+	// ISend(first row) (no wait)
 	//	Central rows
 	// Wait(request)
 	// 	Last row
-	// Isend(last row) (no handle)
+	// Isend(last row) (no wait)
 	
+	unsigned char *top_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
+	unsigned char *bottom_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
+		
 	char val;
 	char diff;
 	char prev; // Will be 1 if the previous cell is alive and 0 otherwise
@@ -283,9 +287,6 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 	int top_neighbour = (rank - 1 + size) % size; // Rank of the MPI process above
 	int bottom_neighbour = (rank + 1) % size; // Rank of the MPI process below
 	
-	unsigned char *top_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
-	unsigned char *bottom_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
-	
 	int* l_ind_pos = (int *)malloc(((xsize/stride)+1) * sizeof(int));  // positions of line_independent cells 
 	int* l_ind_dist = (int *)malloc(((xsize/stride)+1) * sizeof(int)); // distance from the nth l_ind cell to the following l_ind cell (including the first cell)
 	int count; // number of l_ind cells found
@@ -293,7 +294,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 	int error_sum;
 	
 	MPI_Request initial[2]; // Handle for the initialization comm.
-	MPI_Request no;
+	MPI_Request nowait;
 
 	
 	// Getting the ghost rows
@@ -351,10 +352,10 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 
 	// Sending the bottom row of the last MPI process to begin the gen cycle. The tag is 0
 	if (rank == size-1){
-		MPI_Isend(&my_grid[(my_chunk - 1) * xsize], xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 0, MPI_COMM_WORLD, &no);
+		MPI_Isend(&my_grid[(my_chunk - 1) * xsize], xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 0, MPI_COMM_WORLD, &nowait);
 	}else{
 		// Also the top row of each MPI process (except the fist one!) should be sent for the cycle to begin. The tag is 1
-		MPI_Isend(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD, &no);
+		MPI_Isend(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD, &nowait);
 	}
 	
 	
@@ -377,7 +378,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 			pos = x;   //Current position
 			nei = 0;
 			left_move = -1 + (xsize * (x == 0)); //This will make it go up a row if on the left border
-			right_move = +1 - (xsize * (x == xsize-1)); //This will make it go down a row if on the right border
+			right_move = +1 - (xsize * (x == (xsize-1))); //This will make it go down a row if on the right border
 			// computing the number of neighbours
 			nei+=top_ghost_row[x + left_move] & 1;
 			nei+=top_ghost_row[x] & 1;
@@ -424,7 +425,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 				// Updating the first element
 				pos = y*xsize + l_ind_pos[i];
 				left_move = -1 + (xsize * ((pos%xsize) == 0));
-				right_move = +1 - (xsize * ((pos%xsize) == xsize-1));
+				right_move = +1 - (xsize * ((pos%xsize) == (xsize-1)));
 				val = my_grid[pos]; // value of the grid in pos
 				if (i != 0){
 					// Here the first element is a l_ind point
@@ -457,7 +458,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 					pos++;
 					nei = 0;
 					left_move = -1 + (xsize * ((pos%xsize) == 0));
-					right_move = +1 - (xsize * ((pos%xsize) == xsize-1));
+					right_move = +1 - (xsize * ((pos%xsize) == (xsize-1)));
 					val = my_grid[pos];
 					my_current = val & 1;
 					nei = val>>2;
@@ -508,7 +509,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 			pos = y*xsize + x;   // Current position
 			nei = 0;
 			left_move = -1 + (xsize * (x == 0)); //This will make it go up a row if on the left border
-			right_move = +1 - (xsize * (x == xsize-1)); //This will make it go down a row if on the right border
+			right_move = +1 - (xsize * (x == (xsize-1))); //This will make it go down a row if on the right border
 			// Computing the number of neighbours
 			nei+=my_grid[pos + up_move + left_move] & 1;
 			nei+=my_grid[pos + up_move] & 1;
