@@ -205,9 +205,14 @@ int sanity_check_ordered(unsigned char *my_grid, int xsize, int my_chunk, unsign
 
                         my_current = my_grid[pos] & 1;
 
-                        if ( my_grid[pos] != (nei<<2) + (prev<<1) + my_current){
+                        if ( my_grid[pos] != (nei*4) + (prev*2) + my_current){
                                 errors++;
-                                printf("The value of the grid at position %d is: %d   The value in the check function is: %d\n", pos, my_grid[pos], (nei<<2) + (prev<<1) + my_current);
+				if ( (my_grid[pos] - (nei*4) + (prev*2) + my_current)%4 == 0 ){
+					printf("error only on nei.  ");
+				}else{
+					printf("ERRORS IN MANY PLACES!!!!!!!!!!!!!!!!!!   ");
+				}
+                                printf("The value of the grid at position %d is: %d   The value in the check function is: %d\n", pos, my_grid[pos], (nei*4) + (prev*2) + my_current);
                         }
                 }
         }
@@ -346,7 +351,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 				prev = 0;
 			}
 			// the value of each cell will encode its state, the previous cell state and the live neighbours
-			my_grid[pos] = (nei<<2) + (prev<<1) + (my_grid[pos] & 1);
+			my_grid[pos] = (nei*4) + (prev*2) + (my_grid[pos] & 1);
 		}	
 	} // The grid is initialized with the right encoding
 
@@ -398,7 +403,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 			my_current = my_grid[pos] & 1;
 			my_new = (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3)); // Evaluates the new state of the grid
 			diff = my_new - my_current;
-			my_grid[pos] = (nei<<2) + (prev<<1) + my_new;
+			my_grid[pos] = (nei*4) + (prev*2) + my_new;
 			// Updating the value of prev in the next cell 
 			my_grid[pos + 1] += diff*2; // The value of the second bit will increase or decrease by one
 			// Updating the value nei in the other cells
@@ -493,7 +498,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 				nei+=my_grid[pos + down_move + left_move] & 1;
 				nei+=my_grid[pos + down_move] & 1;
 				nei+=my_grid[pos + down_move + right_move] & 1;
-				my_grid[pos] = (nei<<2) + (my_grid[pos] & 3); // The first two bits stay the same
+				my_grid[pos] = (nei*4) + (my_grid[pos] & 3); // The first two bits stay the same
 			}
 				
 		}// End of iteration on central lines
@@ -525,7 +530,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 			my_current = my_grid[pos] & 1;
 			my_new = (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3));
 			diff = my_new - my_current;
-			my_grid[pos] = (nei<<2) + (prev<<1) + my_new;
+			my_grid[pos] = (nei*4) + (prev*2) + my_new;
 			// Updating the value nei in the other cells
 			my_grid[pos + left_move]            += diff*4;
 			my_grid[pos + up_move + left_move]  += diff*4; 
