@@ -431,6 +431,11 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 			my_grid[pos + down_move + left_move]  += diff*4; // nei is stored starting from the third bit, it will 
 			my_grid[pos + down_move]              += diff*4; // increase or decrease by one
 			my_grid[pos + down_move + right_move] += diff*4;
+			if (x == xsize-1){
+                                my_grid[pos + right_move]     += diff*4;
+                        }
+
+
 		}// end of work on the first line
 		
 		// Sending the fist line. The tag is 1
@@ -453,7 +458,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 				right_move = +1 - (xsize * ((pos%xsize) == (xsize-1)));
 				val = my_grid[pos]; // Value of the grid in pos
 				nei = val>>2; // The number of neighbour is stored starting from the third bit on the char
-				prev = val & 2; // The value of the previous cell is stored in the second bit
+				prev = val & 2; // The value of the previous cell is stored in the second bit. This is prev*2
 				if (i != 0){
 					// Here the first element is a l_ind point
 					my_current = val & 1;
@@ -464,7 +469,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 					my_current = val & 1;
 					my_new = (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3)); 
 				}
-				my_grid[pos] = (nei*4) + (prev*2) + my_new; // Updating the cell
+				my_grid[pos] = (nei*4) + prev + my_new; // Updating the cell
 				diff = my_new - my_current;
 				// Updating the value of prev in the next cell
 				my_grid[pos + 1] += diff*2;					
@@ -489,9 +494,9 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 					val = my_grid[pos];
 					my_current = val & 1;
 					nei = val>>2;
-					prev = val & 2;
+					prev = val & 2; // This is prev * 2
 					my_new = (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3)); 
-					my_grid[pos] = (nei*4) + (prev*2) + my_new; // Updating the cell
+					my_grid[pos] = (nei*4) + prev + my_new; // Updating the cell
 					diff = my_new - my_current;
 					// Updating the value of prev in the next cell
 					my_grid[pos + 1] += diff*2;					
@@ -560,6 +565,9 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 			my_grid[pos + up_move + left_move]  += diff*4; 
 			my_grid[pos + up_move]              += diff*4;
 			my_grid[pos + up_move + right_move] += diff*4;
+			if (x == xsize-1){
+				my_grid[pos + right_move]   += diff*4;
+			}
 			
 		}// end of work on the last line
 		

@@ -216,7 +216,7 @@ void write_snapshot(unsigned char *playground, int maxval, int xsize, int ysize,
 {
 	//char filename[256];
 	char *filename = (char *)malloc(strlen(basename)+10);
-	if (snprintf(filename, sizeof(filename), "%s_%05d.pgm", basename, iteration) < 0)
+	if (snprintf(filename, strlen(basename)+10, "%s_%05d.pgm", basename, iteration) < 0)
 		printf("Error writing the file name\n");
 	
 	parallel_write_pgm_image((void *)playground, maxval, xsize, ysize, filename, offset);
