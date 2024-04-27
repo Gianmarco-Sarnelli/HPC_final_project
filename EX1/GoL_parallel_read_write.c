@@ -214,7 +214,8 @@ void parallel_write_pgm_image(void *image, int maxval, int xsize, int my_chunk, 
 
 void write_snapshot(unsigned char *playground, int maxval, int xsize, int ysize, const char *basename, int iteration, int offset)
 {
-	char filename[256];
+	//char filename[256];
+	char *filename = (char *)malloc(strlen(basename)+10);
 	snprintf(filename, sizeof(filename), "%s_%05d.pgm", basename, iteration);
 	
 	parallel_write_pgm_image((void *)playground, maxval, xsize, ysize, filename, offset);

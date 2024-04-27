@@ -1,19 +1,18 @@
 
 OBJECTS=GoL_parallel_main.o GoL_parallel_init_evol.o GoL_parallel_read_write.o
-loc=$(pwd)
 
 
 parallel.x: $(OBJECTS)
-	mpicc -fopenmp -march=native -g -Iinclude &(OBJECTS) -o parallel
+	mpicc -O3 -fopenmp -march=native -g -IInclude -lm $(OBJECTS) -o parallel.x
 
 GoL_parallel_main.o: GoL_parallel_main.c
-	mpicc -fopenmp -march=native -g -Iinclude -c GoL_parallel_main.c
+	mpicc -fopenmp -march=native -g -IInclude -c GoL_parallel_main.c
 	
 GoL_parallel_init_evol.o: GoL_parallel_init_evol.c
-	mpicc -fopenmp -march=native -g -Iinclude -c GoL_parallel_init_evol.c
+	mpicc -fopenmp -march=native -g -IInclude -c GoL_parallel_init_evol.c
 
 GoL_parallel_read_write.o: GoL_parallel_read_write.c
-	mpicc -fopenmp -march=native -g -Iinclude -c GoL_parallel_read_write.c
+	mpicc -fopenmp -march=native -g -IInclude -c GoL_parallel_read_write.c
 	
 	
 serial.x: GoL_serial.c
@@ -21,7 +20,7 @@ serial.x: GoL_serial.c
 	
 
 clean:
-	rm $(loc)/*.x $(loc)/*.o
+	rm *.x *.o
 
 
 

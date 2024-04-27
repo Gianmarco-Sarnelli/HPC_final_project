@@ -17,6 +17,9 @@ struct timeval start_time, end_time;
 #define INIT 1
 #define RUN  2
 
+#define ORDERED 0
+#define STATIC 1
+
 int main ( int argc, char **argv ) {
 	/*Each character in the optstring represents a single-character
 	option that the program accepts. If a character is followed by a colon (:),
@@ -98,7 +101,7 @@ int main ( int argc, char **argv ) {
 		int size;
 		
 		// Getting the rank and the size
-		MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 		MPI_Comm_size(MPI_COMM_WORLD, &size);
 		
 		// Creating variables to subdivide the playground among MPI processes
