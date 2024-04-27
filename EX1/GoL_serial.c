@@ -301,13 +301,8 @@ void static_evolution( char *mygrid, int xsize, int ysize, int n, int s){
 		current_state = gen % 2 + 1;
 		next_state = 2 - gen % 2;
 		
-		// using the previous alg the results were:
-		//(elsapsed time: 4.323 sec (without changing the grid positions algorithm) (with new grid alg: 2.288 sec))
-		
-		//new cycle on the cells, with a faster alg  (elapsed time: 2.227 sec) (It passed the Pentadecathlon test)
 		for(int y=0; y<ysize; y++){
 			for(int x=0; x<xsize; x++){
-			
 				
 				left_move = -1 + (xsize * (x == 0)); //This will make it go up a row if on the left border
 				right_move = +1 - (xsize * (x == xsize-1)); //This will make it go down a row if on the right border
@@ -338,7 +333,6 @@ void static_evolution( char *mygrid, int xsize, int ysize, int n, int s){
 														// equal to 1 (state 3) or to 0 (if the
 														// multiplication gives 0)
 				}*/
-				
 				
 				//REWITTEN IN A FASTER WAY (without if jumps):
 				

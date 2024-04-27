@@ -47,24 +47,52 @@ char *  init_playground(unsigned long int n_cells){
 // ######################################################################################################################################
 
 void static_evolution(unsigned char *local_playground, int xsize, int my_chunk, int my_offset,  int n, int s) {
+	/*
+	
+	// MPI communications stucture:
+	//
+	// Recv(top_ghost_row) (blocking)
+	// IRecv(bottom_ghost_row) (handle "request")
+	// 	First row
+	// ISend(first row) (no wait)
+	//	Central rows
+	// Wait(request)
+	// 	Last row
+	// Isend(last row) (no wait)
+	
+	
+	unsigned char *top_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
+	unsigned char *bottom_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
+	
+	// alternating positions of the current and next states of the system
+	char current;
+	char next;
 
+	char nei; // number of live neighbours
+	char my_current;  // current state of the cell
+			
+	//This will help in the computation of neighbuouring cells
+	int left_move;    // left_move = -1 + (xsize if x == 0). This will make it go up a row if on the left border
+	int right_move;   // right_move = +1 - (xsize if x == xsize-1). This will make it go down a row if on the right border
+	//int up_move;      // up_move = -xsize + (xsize*ysize if y == 0)
+	//int down_move;    // down_move = xsize - (xsize*ysize if y == ysize-1)
+	int pos;          // pos = y*xsize + x.   Current position
 	
 	int rank, size;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank); //get the rank of the current process
 	MPI_Comm_size(MPI_COMM_WORLD, &size); //get the total number of processes
-
-	//int local_size = my_chunk * xsize * sizeof(unsigned char); // Memory size for the MPI process  // remove  !!
-	/*
-	unsigned char *top_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
-	unsigned char *bottom_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
-
+	
 	int top_neighbour = (rank - 1 + size) % size; // Rank of the MPI process above
 	int bottom_neighbour = (rank + 1) % size; // Rank of the MPI process below
 	
 	// Starting the iteration on the generations
 	for (int gen=0; gen<n; gen++) {
 		
-		unsigned char *updated_playground = (unsigned char *)malloc(my_chunk * xsize * sizeof(unsigned char));
+		// Alternating positions of the current and next states of the system
+		// The value of current and next alternate between 1 and 2 (first and second bit)
+		current = gen % 2 + 1;
+		next = 2 - gen % 2;
+		
 		MPI_Request request[2]; // Handle for the initialization comm.
 	
 		// Getting the ghost rows
@@ -80,26 +108,16 @@ void static_evolution(unsigned char *local_playground, int xsize, int my_chunk, 
 		// Wait for both routines to complete
 		MPI_Waitall(2, request, MPI_STATUSES_IGNORE);
 		
-		// modify!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		#pragma omp parallel for collapse(2) 
-		for (int y = 0; y < my_chunk; y++)
-		{
-		for (int x = 0; x < xsize; x++)
-		{   
-		update_cell_static((y == 0 ? top_ghost_row : &local_playground[(y - 1) * xsize]),
-		(y == my_chunk - 1 ? bottom_ghost_row : &local_playground[(y + 1) * xsize]),
-		local_playground, updated_playground, xsize, my_chunk, x, y);
-		}
-		}
-
-		//        memcpy(local_playground, updated_playground, local_size * sizeof(unsigned char));
 		
-		// modify!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-		unsigned char *temp = local_playground;
-		local_playground = updated_playground;
-		updated_playground = temp;
-		free(updated_playground); 
-
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		if(gen % s == 0){
 		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots/parallel_static/snapshot", gen, my_offset); //CHECK IT!!!!
 		}
@@ -569,5 +587,6 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 	if(s == n){
 		write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots/parallel_ordered/snapshot", n-1, my_offset);
 	}
+	return;
 }
 
