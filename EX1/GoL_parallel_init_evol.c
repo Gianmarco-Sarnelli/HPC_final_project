@@ -49,6 +49,8 @@ char *  init_playground(unsigned long int n_cells){
 void static_evolution(unsigned char *local_playground, int xsize, int my_chunk, int my_offset,  int n, int s) {
 	/*
 	
+	// There might be problems if k is too small. Some threads might get less than 2 rows!
+	
 	// MPI communications stucture:
 	//
 	// Recv(top_ghost_row) (blocking)
@@ -449,7 +451,9 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 				pos = y*xsize + l_ind_pos[i];
 				left_move = -1 + (xsize * ((pos%xsize) == 0));
 				right_move = +1 - (xsize * ((pos%xsize) == (xsize-1)));
-				val = my_grid[pos]; // value of the grid in pos
+				val = my_grid[pos]; // Value of the grid in pos
+				nei = val>>2; // The number of neighbour is stored starting from the third bit on the char
+				prev = val & 2; // The value of the previous cell is stored in the second bit
 				if (i != 0){
 					// Here the first element is a l_ind point
 					my_current = val & 1;
@@ -458,14 +462,14 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 				}else{
 					// Here the first element is the first cell of the row
 					my_current = val & 1;
-					nei = val>>2; // the number of neighbour is stored starting from the third bit on the char
 					my_new = (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3)); 
 				}
+				my_grid[pos] = (nei*4) + (prev*2) + my_new; // Updating the cell
 				diff = my_new - my_current;
 				// Updating the value of prev in the next cell
 				my_grid[pos + 1] += diff*2;					
 				// Updating the value of nei in the near cells
-				diff *=4;
+				diff *= 4;
 				my_grid[pos + up_move + left_move]    += diff;  // diff now stores 4*(my_new - my_current)
 				my_grid[pos + up_move]                += diff;
 				my_grid[pos + up_move + right_move]   += diff;
@@ -485,7 +489,9 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 					val = my_grid[pos];
 					my_current = val & 1;
 					nei = val>>2;
+					prev = val & 2;
 					my_new = (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3)); 
+					my_grid[pos] = (nei*4) + (prev*2) + my_new; // Updating the cell
 					diff = my_new - my_current;
 					// Updating the value of prev in the next cell
 					my_grid[pos + 1] += diff*2;					
