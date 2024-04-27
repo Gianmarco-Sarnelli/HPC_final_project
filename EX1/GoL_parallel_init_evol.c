@@ -228,9 +228,9 @@ int sanity_check_ordered(unsigned char *my_grid, int xsize, int my_chunk, unsign
                         if ( my_grid[pos] != (nei*4) + (prev*2) + my_current){
                                 errors++;
 				if ( (my_grid[pos] - (nei*4) - (prev*2) - my_current)%4 == 0 ){
-					printf("error only on nei.  ");
+					printf("Error only on nei.  ");
 				}else{
-					printf("ERRORS IN MANY PLACES!!!!!!!!!!!!!!!!!!   ");
+					printf("Error in many places!    ");
 				}
                                 printf("The value of the grid at position %d is: %d   The value in the check function is: %d\n", pos, my_grid[pos], (nei*4) + (prev*2) + my_current);
                         }
@@ -290,6 +290,8 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 	unsigned char *top_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
 	unsigned char *bottom_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
 		
+	unsigned char *snap_grid = (unsigned char*)malloc(xsize*my_chunk*sizeof(unsigned char));
+
 	char val;
 	char diff;
 	char prev; // Will be 1 if the previous cell is alive and 0 otherwise
@@ -579,6 +581,11 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 		}
 		
 		if(gen % s == 0){
+			//writing the temporary grid
+			for (int i=0; i<xsize*my_chunk; i++){
+				//snap_grid will have the value of the grid at the current state
+				snap_grid[i] = my_grid[i] & 1;
+			}			
 			write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots/parallel_ordered/snapshot", gen, my_offset);
 		}
 		
@@ -599,6 +606,11 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 		free(l_ind_dist);
 
 	if(s == n){
+		//writing the temporary grid
+		for (int i=0; i<xsize*my_chunk; i++){
+			//snap_grid will have the value of the grid at the current state
+			snap_grid[i] = my_grid[i] & 1;
+		}
 		write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots/parallel_ordered/snapshot", n-1, my_offset);
 	}
 	return;
