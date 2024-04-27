@@ -173,11 +173,12 @@ void parallel_write_pgm_image(void *image, int maxval, int xsize, int my_chunk, 
 		char header[header_size];
 		sprintf(header, "P5\n%8d %8d\n%d\n", xsize, xsize, color_depth);
 		err = MPI_File_open(MPI_COMM_SELF, image_name, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);
+		// Mode: write only + create the file if it doesn't exist
 		if (err!=0) {
 			printf("Error opening file for writing header: %d\n", err);
 			return;
 		}
-		err = MPI_File_write(fh, header, header_size, MPI_CHAR, &status);
+		err = MPI_File_write(fh, (const void *)header, header_size, MPI_CHAR, &status);
 		if (err!=0) {
 			printf("Error writing header: %d\n", err);
 			return;
@@ -193,7 +194,7 @@ void parallel_write_pgm_image(void *image, int maxval, int xsize, int my_chunk, 
 		return;
 	}
 
-	err += MPI_File_write_at_all(fh, offset,(unsigned char *) image, my_chunk * xsize * color_depth, MPI_UNSIGNED_CHAR, &status);
+	err += MPI_File_write_at_all(fh, (MPI_Offset)offset,(const void *)image, my_chunk * xsize * color_depth, MPI_UNSIGNED_CHAR, &status);
 	if (err!=0) {
 		printf("Error writing data: %d\n", err);
 		return;
@@ -219,7 +220,7 @@ void write_snapshot(unsigned char *playground, int maxval, int xsize, int ysize,
 	if (snprintf(filename, strlen(basename)+10, "%s_%05d.pgm", basename, iteration) < 0)
 		printf("Error writing the file name\n");
 	
-	parallel_write_pgm_image((void *)playground, maxval, xsize, ysize, filename, offset);
+	parallel_write_pgm_image((void *)playground, maxval, xsize, ysize, (const char*)filename, offset);
 }
 
 
