@@ -225,7 +225,7 @@ int sanity_check_ordered(unsigned char *my_grid, int xsize, int my_chunk, unsign
 
                         if ( my_grid[pos] != (nei*4) + (prev*2) + my_current){
                                 errors++;
-				if ( (my_grid[pos] - (nei*4) + (prev*2) + my_current)%4 == 0 ){
+				if ( (my_grid[pos] - (nei*4) - (prev*2) - my_current)%4 == 0 ){
 					printf("error only on nei.  ");
 				}else{
 					printf("ERRORS IN MANY PLACES!!!!!!!!!!!!!!!!!!   ");
