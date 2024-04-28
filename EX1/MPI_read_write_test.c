@@ -131,7 +131,7 @@ int main(){
 	unsigned char *new_playground = (unsigned char *)malloc(my_n_cells * sizeof(unsigned char));
 	
 	//MODIFYING THE PLAYGROUND
-	for (int i=0; int<my_n_cells; i++){
+	for (int i=0; i<my_n_cells; i++){
 		playground[i] = i%7;
 	}
 	
@@ -139,7 +139,7 @@ int main(){
 	parallel_write_pgm_image((void *)playground, 1, k, my_chunk, (const char *)image_name, my_offset);
 	
 	// Reading the pgm file in parallel
-	parallel_read_pgm_image((void *)new_playground, fname, my_offset, my_n_cells);
+	parallel_read_pgm_image((void *)new_playground, image_name, my_offset, my_n_cells);
 	
 	int errors = 0;
 	int error_sum;
