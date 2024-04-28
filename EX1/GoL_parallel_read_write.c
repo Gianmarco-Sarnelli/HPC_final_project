@@ -139,13 +139,13 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
 
 // ######################################################################################################################################
 
-void parallel_read_pgm_image(void **image, const char *image_name, int offset, int portion_size) {
+void parallel_read_pgm_image(void *image, const char *image_name, int offset, int portion_size) {
  
 	MPI_File fh;
 	MPI_Status status;
 	MPI_File_open(MPI_COMM_WORLD, image_name, MPI_MODE_RDONLY, MPI_INFO_NULL, &fh);
 	MPI_File_seek(fh, offset, MPI_SEEK_SET);
-	MPI_File_read(fh, *image, portion_size, MPI_UNSIGNED_CHAR, &status);
+	MPI_File_read(fh, image, portion_size, MPI_UNSIGNED_CHAR, &status);
 
 	MPI_Barrier(MPI_COMM_WORLD);
 
@@ -185,7 +185,8 @@ void parallel_write_pgm_image(void *image, int maxval, int xsize, int my_chunk, 
 		}
 		MPI_File_close(&fh);
 	}
-
+	
+	//modify!!!!!!!!!!
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	err = MPI_File_open(MPI_COMM_WORLD, image_name, MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);

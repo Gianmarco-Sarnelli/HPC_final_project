@@ -111,6 +111,35 @@ void static_evolution(unsigned char *local_playground, int xsize, int my_chunk, 
 		MPI_Waitall(2, request, MPI_STATUSES_IGNORE);
 		
 		
+		for(int y=0; y<ysize; y++){
+			for(int x=0; x<xsize; x++){
+				
+				left_move = -1 + (xsize * (x == 0)); //This will make it go up a row if on the left border
+				right_move = +1 - (xsize * (x == xsize-1)); //This will make it go down a row if on the right border
+				up_move = -xsize + (xsize*ysize * (y == 0));
+				down_move = xsize - (xsize*ysize * (y == ysize-1));
+				pos = y*xsize + x;   //Current position
+				
+				nei = 0;
+				
+				// in the following steps the position of neighbouring cells are computed using i and "left_r", "right_r"
+				nei += (mygrid[pos + up_move + left_move] & current_state) == current_state ;
+				nei += (mygrid[pos + up_move] & current_state) == current_state ;
+				nei += (mygrid[pos + up_move + right_move] & current_state) == current_state ;
+				nei += (mygrid[pos + left_move] & current_state) == current_state ;
+				nei += (mygrid[pos + right_move] & current_state) == current_state ;
+				nei += (mygrid[pos + down_move + left_move] & current_state) == current_state ;
+				nei += (mygrid[pos + down_move] & current_state) == current_state ;
+				nei += (mygrid[pos + down_move + right_move] & current_state) == current_state ;
+				
+				my_current = current_state & mygrid[pos];
+				mygrid[pos] = my_current + next_state * (  (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3))  );
+				//this is done to preserve the current state and modify the next state (they are located on different bits)
+				//explaination: the "next_state" bit will be one only if the cell is born or nothing happens on a live cell
+				
+			}
+		}// end iteration on cells
+				
 		
 		
 		

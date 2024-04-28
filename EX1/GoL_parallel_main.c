@@ -107,7 +107,7 @@ int main ( int argc, char **argv ) {
 		// Checking the number of processes and threads
 		if (my_rank == 0)
 			printf("MPI initialized with %d processes\n", size);
-			printf("There are %d omp threads \n", omp_get_num_threads);
+			printf("There are %d omp threads \n", omp_get_num_threads());
 		
 		// Creating variables to subdivide the playground among MPI processes
 		int chunk = k / size;
@@ -122,7 +122,7 @@ int main ( int argc, char **argv ) {
 		unsigned char *playground = (unsigned char *)malloc(my_n_cells * sizeof(unsigned char));
 		
 		// Reading the pgm file in parallel
-		parallel_read_pgm_image((void **)&playground, fname, my_offset, my_n_cells);
+		parallel_read_pgm_image((void *)playground, fname, my_offset, my_n_cells);
 		
 		gettimeofday(&start_time, NULL);
 
