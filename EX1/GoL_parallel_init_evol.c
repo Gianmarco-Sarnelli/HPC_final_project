@@ -46,7 +46,7 @@ char *  init_playground(unsigned long int n_cells){
 
 // ######################################################################################################################################
 
-void static_evolution(unsigned char *local_playground, unsigned char *grid, int *num_cells, int *displs, int xsize, int my_chunk, int n, int s) {
+void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cells, int *displs, int xsize, int my_chunk, int n, int s) {
 	/*
 	
 	// There might be problems if k is too small. Some threads might get less than 2 rows!

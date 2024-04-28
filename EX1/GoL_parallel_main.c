@@ -120,7 +120,7 @@ int main ( int argc, char **argv ) {
 		unsigned char *my_grid = (unsigned char *)malloc(my_n_cells * sizeof(unsigned char));
 		
 		// Reading the initial pgm file
-		if (rank == 0){
+		if (my_rank == 0){
 			int maxval = 1;
 			read_pgm_image((void **)&grid, &maxval, &k, &k, fname);
 		}
@@ -134,7 +134,7 @@ int main ( int argc, char **argv ) {
 		}
 		
 		// Scattering the grid across the processes
-		MPI_Scatterv(grid, num_cells, displs, MPI_UNSIGNED_CHAR, my_playground, num_cells[my_rank], MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+		MPI_Scatterv(grid, num_cells, displs, MPI_UNSIGNED_CHAR, my_grid, num_cells[my_rank], MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 		
 		// Starting the evolution
 		gettimeofday(&start_time, NULL);
@@ -164,7 +164,7 @@ int main ( int argc, char **argv ) {
 		if( grid != NULL)
 			free(grid);
 		if( my_grid != NULL)
-			free(my_grid)
+			free(my_grid);
 		
 		if (my_rank == 0) {
 			// 		MODIFY THIS!!!!!!!
