@@ -103,7 +103,6 @@ int main ( int argc, char **argv ) {
 		// Getting the rank and the size
 		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 		MPI_Comm_size(MPI_COMM_WORLD, &size);
-		
 		// Checking the number of processes and threads
 		if (my_rank == 0){
 			printf("MPI initialized with %d processes\n", size);
@@ -122,13 +121,13 @@ int main ( int argc, char **argv ) {
 		// Reading the initial pgm file
 		if (my_rank == 0){
 			int maxval = 1;
-			read_pgm_image((void **)&grid, &maxval, &k, &k, fname);
+			//read_pgm_image((void **)&grid, &maxval, &k, &k, fname);
 		}
 		
 		// Getting the arguments for MPI_SCATTER
 		int *num_cells = (int *)malloc(size * sizeof(int));
 		int *displs = (int *)malloc(size * sizeof(int));
-		for (int i=0; i<my_chunk; i++) {
+		for (int i=0; i<size; i++) {
 			num_cells[i] = ( (i < k%my_chunk) ? (k/my_chunk)+1 : k/my_chunk ) * k;
 			displs[i] = (i==0 ? 0 : (displs[i-1] + num_cells[i-1]) );
 		}
