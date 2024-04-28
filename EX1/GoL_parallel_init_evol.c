@@ -617,18 +617,6 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 				snap_grid[i] = my_grid[i] & 1;
 			}
 			MPI_Gatherv((void*)snap_grid, num_cells[rank], MPI_UNSIGNED_CHAR, (void*)grid, num_cells, displs, MPI_UNSIGNED_CHAR, size-1, MPI_COMM_WORLD);
-			
-			// GATHER TEST!!!!
-			if (my_rank == 0){
-				printf("Gather test:\n");
-				for(int i=0; i<xsize*xsize; i++){
-					printf("%d ", my_grid[i]);
-					if(i%k == k-1){
-						printf("\n");
-					}
-				}
-			}
-			
 			if (rank == size-1){ // The last process will write the snapshot		
 				write_snapshot(grid, 1, xsize, xsize, "./Snapshots/parallel_ordered/snapshot", gen);
 			}
