@@ -56,7 +56,7 @@ void write_pgm_image( void *image, int maxval, int xsize, int ysize, const char 
 void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const char *image_name){
 	/*
 	* image        : a pointer to the pointer that will contain the image
-	* maxval       : a pointer to the int that will store the maximum intensity in the image (also controlls errors
+	* maxval       : a pointer to the int that will store the maximum intensity in the image (also controlls errors)
 	* xsize, ysize : pointers to the x and y sizes
 	* image_name   : the name of the file to be read
 	*
@@ -106,6 +106,7 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
 	{
 		*maxval = -1;         // this is the signal that there was an I/O error
 		// while reading the image header
+		printf("There was an I/O error while reading the image header");
 		free( line );
 		return;
 	}
@@ -117,6 +118,7 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
 	if ( (*image = (char*)malloc( size )) == NULL ){
 		fclose(image_file);
 		*maxval = -2;         // this is the signal that memory was insufficient
+		printf("The memory was isufficient");
 		*xsize  = 0;
 		*ysize  = 0;
 		return;
@@ -127,6 +129,7 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
 		free( image );
 		image   = NULL;
 		*maxval = -3;         // this is the signal that there was an i/o error
+		printf("There was an I/O error");
 		*xsize  = 0;
 		*ysize  = 0;
 	}  
@@ -214,14 +217,13 @@ void parallel_write_pgm_image(void *image, int maxval, int xsize, int my_chunk, 
 
 // ######################################################################################################################################
 
-void write_snapshot(unsigned char *playground, int maxval, int xsize, int ysize, const char *basename, int iteration, int offset)
+void write_snapshot(unsigned char *playground, int maxval, int xsize, int ysize, const char *basename, int iteration)
 {
-	//char filename[256];
 	char *filename = (char *)malloc(strlen(basename)+10);
 	if (snprintf(filename, strlen(basename)+10, "%s_%05d.pgm", basename, iteration) < 0)
 		printf("Error writing the file name\n");
 	
-	parallel_write_pgm_image((void *)playground, maxval, xsize, ysize, (const char*)filename, offset);
+	write_pgm_image((void *)playground, maxval, xsize, ysize, (const char*)filename);
 }
 
 

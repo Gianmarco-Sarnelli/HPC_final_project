@@ -46,7 +46,7 @@ char *  init_playground(unsigned long int n_cells){
 
 // ######################################################################################################################################
 
-void static_evolution(unsigned char *local_playground, int xsize, int my_chunk, int my_offset,  int n, int s) {
+void static_evolution(unsigned char *local_playground, unsigned char *grid, int *num_cells, int *displs, int xsize, int my_chunk, int n, int s) {
 	/*
 	
 	// There might be problems if k is too small. Some threads might get less than 2 rows!
@@ -150,7 +150,7 @@ void static_evolution(unsigned char *local_playground, int xsize, int my_chunk, 
 		
 		
 		if(gen % s == 0){
-		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots/parallel_static/snapshot", gen, my_offset); //CHECK IT!!!!
+		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots/parallel_static/snapshot", gen); //CHECK IT!!!!
 		}
 
 	} // End cycle on gen
@@ -159,7 +159,7 @@ void static_evolution(unsigned char *local_playground, int xsize, int my_chunk, 
 	free(bottom_ghost_row);
 
 	if(s == n){
-		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots/parallel_static/snapshot", n-1, my_offset);
+		write_snapshot(local_playground, 1, xsize, my_chunk, "./Snapshots/parallel_static/snapshot", n-1);
 	}
 	*/
 	return;
@@ -276,7 +276,7 @@ int sanity_check_ordered(unsigned char *my_grid, int xsize, int my_chunk, unsign
 
 // ######################################################################################################################################
 
-void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_offset,  int n, int s) {
+void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cells, int *displs, int xsize, int my_chunk, int n, int s) {
 
 	// The idea to parallelize the evolution is to find the "line_independent" cells for each central line.
 	// The line_independent cells are cells whose evolution doesn't depend on the evolution of the previous cell (see image).
@@ -301,7 +301,6 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 	// 	Evolving central rows
 	// 		Finding the line-independent points
 	// 		OMP parallelization
-	// 		Modifying nei for the last elements of fragments
 	// 	Evolving the last row and MPI communications
 	// 	Error checking and printing (optional)
 	
@@ -413,6 +412,7 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 		// Also the top row of each MPI process (except the fist one!) should be sent for the cycle to begin. The tag is 1
 		MPI_Isend(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD, &nowait);
 	}
+	MPI_Request_free(&nowait);
 	
 	
 	// Starting the iteration on the generations
@@ -604,18 +604,22 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 		
 		// Checking if the grid is correct
 		errors = sanity_check_ordered(my_grid, xsize, my_chunk, top_ghost_row, bottom_ghost_row);
-		MPI_Reduce(&errors, &error_sum, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
+		MPI_Reduce(&errors, &error_sum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 		if (rank == 0){
 			printf("In gen %d there are %d errors in the grid\n", gen, error_sum);
 		}
 		
+		// Writing the snapshot file
 		if(gen % s == 0){
 			//writing the temporary grid
 			for (int i=0; i<xsize*my_chunk; i++){
 				//snap_grid will have the value of the grid at the current state
 				snap_grid[i] = my_grid[i] & 1;
-			}			
-			write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots/parallel_ordered/snapshot", gen, my_offset);
+			}
+			MPI_Gatherv((void*)snap_grid, num_cells[rank], MPI_UNSIGNED_CHAR, (void*)grid, num_cells, displs, MPI_UNSIGNED_CHAR, size-1, MPI_COMM_WORLD);
+			if (rank == size-1){ // The last process will write the snapshot		
+				write_snapshot(grid, 1, xsize, xsize, "./Snapshots/parallel_ordered/snapshot", gen);
+			}
 		}
 		
 		// The MPI ends by sending the last row, without it the new gen wouldn't start. The tag is 0
@@ -640,8 +644,14 @@ void ordered_evolution(unsigned char *my_grid, int xsize, int my_chunk, int my_o
 			//snap_grid will have the value of the grid at the current state
 			snap_grid[i] = my_grid[i] & 1;
 		}
-		write_snapshot(my_grid, 1, xsize, my_chunk, "./Snapshots/parallel_ordered/snapshot", n-1, my_offset);
+		MPI_Gatherv((void*)snap_grid, num_cells[rank], MPI_UNSIGNED_CHAR, (void*)grid, num_cells, displs, MPI_UNSIGNED_CHAR, size-1, MPI_COMM_WORLD);
+		if (rank == size-1){ // The last process will write the snapshot		
+			write_snapshot(grid, 1, xsize, xsize, "./Snapshots/parallel_ordered/snapshot", n-1);
+		}
 	}
+	if (snap_grid != NULL)
+		free(snap_grid);
+	
 	return;
 }
 

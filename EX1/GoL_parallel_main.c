@@ -57,7 +57,6 @@ int main ( int argc, char **argv ) {
 				break;
 			case 'k':
 				k = atoi(optarg); //NOTE: if the value excedes 46340 we might have integer overflow on the position!
-						  //NOTE: if k is smaller than the stride (128) there might be be problems
 				break;
 			case 'e':
 				e = atoi(optarg); 
@@ -83,13 +82,14 @@ int main ( int argc, char **argv ) {
 	
 		unsigned long int n_cells = k*k;
 		// Initializing the playground
-		char * my_grid = init_playground(n_cells);		
+		char * grid = init_playground(n_cells);		
 		// Writing the pgm file
-		write_pgm_image(my_grid, 1, k, k, fname);
+		write_pgm_image(grid, 1, k, k, fname);
 	}
 
 	if (action==RUN){
-
+		
+		unsigned long int n_cells = k*k;
 		double mean_time;
 		double time_elapsed;
 		// int mpi_provided_thread_level;  // the current thread support (how MPI will interface with other threads)
@@ -105,40 +105,52 @@ int main ( int argc, char **argv ) {
 		MPI_Comm_size(MPI_COMM_WORLD, &size);
 		
 		// Checking the number of processes and threads
-		if (my_rank == 0)
+		if (my_rank == 0){
 			printf("MPI initialized with %d processes\n", size);
 			printf("There are %d omp threads \n", omp_get_num_threads());
+		}
 		
 		// Creating variables to subdivide the playground among MPI processes
 		int chunk = k / size;
 		int mod = k % size;
 		int my_chunk = chunk + (my_rank < mod); // Number of rows for the MPI process
-		int my_first = my_rank*chunk + (my_rank < mod ? my_rank : mod); // Starting row for the MPI process
 		int my_n_cells = my_chunk * k;  // Number fo cells for the MPI process
 		
-		const int header_size = 23;
-		int my_offset = header_size + my_first * k; // Offset in the pgm file of the data for the MPI process
+		unsigned char *grid = (unsigned char *)malloc(n_cells * sizeof(unsigned char));
+		unsigned char *my_grid = (unsigned char *)malloc(my_n_cells * sizeof(unsigned char));
 		
-		unsigned char *playground = (unsigned char *)malloc(my_n_cells * sizeof(unsigned char));
+		// Reading the initial pgm file
+		if (rank == 0){
+			int maxval = 1;
+			read_pgm_image((void **)&grid, &maxval, &k, &k, fname);
+		}
 		
-		// Reading the pgm file in parallel
-		parallel_read_pgm_image((void *)playground, fname, my_offset, my_n_cells);
+		// Getting the arguments for MPI_SCATTER
+		int *num_cells = (int *)malloc(size * sizeof(int));
+		int *displs = (int *)malloc(size * sizeof(int));
+		for (int i=0; i<my_chunk; i++) {
+			num_cells[i] = ( (i < k%my_chunk) ? (k/my_chunk)+1 : k/my_chunk ) * k;
+			displs[i] = (i==0 ? 0 : (displs[i-1] + num_cells[i-1]) );
+		}
 		
+		// Scattering the grid across the processes
+		MPI_Scatterv(grid, num_cells, displs, MPI_UNSIGNED_CHAR, my_playground, num_cells[my_rank], MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+		
+		// Starting the evolution
 		gettimeofday(&start_time, NULL);
-
 		if(e == ORDERED){
 
 			if(s>0){
-				ordered_evolution(playground, k, my_chunk, my_offset, n, s);
+				ordered_evolution(my_grid, grid, num_cells, displs, k, my_chunk, n, s);
 			}else if (s==0){
-				ordered_evolution(playground, k, my_chunk, my_offset, n, n);
+				ordered_evolution(my_grid, grid, num_cells, displs, k, my_chunk, n, n);
 			}
 		}else if(e == STATIC){
 		
 			if(s>0){
-				static_evolution(playground, k, my_chunk, my_offset, n, s);
+				static_evolution(my_grid, grid, num_cells, displs, k, my_chunk, n, s);
 			}else if (s==0){
-				static_evolution(playground, k, my_chunk, my_offset, n, n);
+				static_evolution(my_grid, grid, num_cells, displs, k, my_chunk, n, n);
 			}
 		}
 				
@@ -148,12 +160,16 @@ int main ( int argc, char **argv ) {
 		time_elapsed = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1e6;
 
 		mean_time = time_elapsed / n;
-		free(playground);
+		
+		if( grid != NULL)
+			free(grid);
+		if( my_grid != NULL)
+			free(my_grid)
 		
 		if (my_rank == 0) {
 			// 		MODIFY THIS!!!!!!!
 			
-			printf("%f", mean_time);
+			printf("%f\n", mean_time);
 		
 			//FILE *fp = fopen("timing.csv", "a"); 
 			//fprintf(fp, "%f,", mean_time);
@@ -161,9 +177,9 @@ int main ( int argc, char **argv ) {
 		}
 
 	}
-	if ( fname != NULL ){
+	if ( fname != NULL )
 		free ( fname );
-	}
+	
 	return 0; 
 
 
