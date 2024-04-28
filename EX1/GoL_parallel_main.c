@@ -130,10 +130,23 @@ int main ( int argc, char **argv ) {
 		for (int i=0; i<size; i++) {
 			num_cells[i] = ( (i < k%my_chunk) ? (k/my_chunk)+1 : k/my_chunk ) * k;
 			displs[i] = (i==0 ? 0 : (displs[i-1] + num_cells[i-1]) );
+			//TEST ARRAYS !!!!!!!
+			printf("num_cells, displs:%d   %d\n", num_cells[i], displs[i]);
 		}
 		
 		// Scattering the grid across the processes
 		MPI_Scatterv(grid, num_cells, displs, MPI_UNSIGNED_CHAR, my_grid, num_cells[my_rank], MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+		
+		//TEST SCATTER!!!!!!!!!!!
+		if (my_rank == 0){
+			printf("Scatter test:\n");
+			for(int i=0; i<num_cells[my_rank]; i++){
+				printf("%d ", my_grid[i]);
+				if(i%k == k-1){
+					printf("\n");
+				}
+			}
+		}
 		
 		// Starting the evolution
 		gettimeofday(&start_time, NULL);
