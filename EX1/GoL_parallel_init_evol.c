@@ -509,10 +509,11 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 				my_grid[pos + up_move + left_move]    += diff;  // diff now stores 4*(my_new - my_current)
 				my_grid[pos + up_move]                += diff;
 				my_grid[pos + up_move + right_move]   += diff;
-				my_grid[pos + left_move]              += diff * (i == 0); 	// We pass backword this information only if this is the first
-												// element of the row. Sending the this information backward 
+				if (i == 0){
+					my_grid[pos + left_move]              += diff ;			// We pass backward this information only if this is the first
+				}								// element of the row. Sending the this information backward 
 												// would create some irregularities, so the right way is to 
-												// modify the last element of each fragment at the end
+												// modify the last element of each fragment at the end of the fragments
 				my_grid[pos + right_move]             += diff;
 				my_grid[pos + down_move + left_move]  += diff;
 				my_grid[pos + down_move]              += diff;

@@ -141,6 +141,7 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
 // ######################################################################################################################################
 
 int main(){
+	int check = 0;
 	char* serial_grid;
 	char* parallel_grid;
 	int maxval = 1;
@@ -152,6 +153,7 @@ int main(){
 	char parallelname[38];
 	char diffname[26];
 	for(int i=0; i<100; i++){
+		check = 0;
 		snprintf(serialname, 36 , "%s_%05d.pgm", serial_base, i);
 		snprintf(parallelname, 38 , "%s_%05d.pgm", parallel_base, i);
 		read_pgm_image((void **)&serial_grid, &maxval, &xsize, &ysize, serialname);
@@ -160,10 +162,14 @@ int main(){
 		for(int x=0; x<xsize; x++){
 			for(int y=0; y<ysize; y++){
 				diff_grid[y*xsize + x] = serial_grid[y*xsize + x] ^ parallel_grid[y*xsize + x];
+				if (serial_grid[y*xsize + x] !=  parallel_grid[y*xsize + x]){
+					check ++;
+				}
 			}
 		}
+		printf("Number of errors checked: %d\n", check);
 		snprintf(diffname, 26 , "./differences/n_%05d.pgm", i);
 		write_pgm_image( (void *)diff_grid, 1, xsize, ysize, diffname);
-		}
+	}
 	return 0;
 }
