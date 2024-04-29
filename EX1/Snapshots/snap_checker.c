@@ -3,8 +3,6 @@
 #include <stdbool.h>
 #include <time.h>
 #include <string.h>
-#include "mpi.h"
-#include <omp.h>
 #include <getopt.h>
 
 #define MAXVAL 255
@@ -142,88 +140,30 @@ void read_pgm_image( void **image, int *maxval, int *xsize, int *ysize, const ch
 
 // ######################################################################################################################################
 
-void parallel_read_pgm_image(void *image, const char *image_name, int offset, int portion_size) {
- 
-	MPI_File fh;
-	MPI_Status status;
-	MPI_File_open(MPI_COMM_WORLD, image_name, MPI_MODE_RDONLY, MPI_INFO_NULL, &fh);
-	MPI_File_seek(fh, offset, MPI_SEEK_SET);
-	MPI_File_read(fh, image, portion_size, MPI_UNSIGNED_CHAR, &status);
-
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	MPI_File_close(&fh);
-
-}
-
-// ######################################################################################################################################
-
-// ######################################################################################################################################
-
-void parallel_write_pgm_image(void *image, int maxval, int xsize, int my_chunk, const char *image_name, int offset) {
-
-	int rank, size;
-	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-	MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-	int color_depth = 1 + (maxval > 255);
-	MPI_File fh;
-
-	MPI_Status status;
-	int err=0;
-	const int header_size = 23;
-	if (rank == 0) {
-		char header[header_size];
-		sprintf(header, "P5\n%8d %8d\n%d\n", xsize, xsize, color_depth);
-		err = MPI_File_open(MPI_COMM_SELF, image_name, MPI_MODE_CREATE | MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);
-		// Mode: write only + create the file if it doesn't exist
-		if (err!=0) {
-			printf("Error opening file for writing header: %d\n", err);
-			return;
+int main(){
+	char* serial_grid;
+	char* parallel_grid;
+	int maxval = 1;
+	int xsize;
+	int ysize;
+	char serial_base[] = "./serial_ordered/snapshot";
+	char parallel_base[] = "./parallel_ordered/snapshot";
+	char serialname[36];
+	char parallelname[38];
+	char diffname[26];
+	for(int i=0; i<100; i++){
+		snprintf(serialname, 36 , "%s_%05d.pgm", serial_base, i);
+		snprintf(parallelname, 38 , "%s_%05d.pgm", parallel_base, i);
+		read_pgm_image((void **)&serial_grid, &maxval, &xsize, &ysize, serialname);
+		read_pgm_image((void **)&parallel_grid, &maxval, &xsize, &ysize, parallelname);
+		unsigned char *diff_grid = (unsigned char *)malloc(xsize*ysize * sizeof(unsigned char));
+		for(int x=0; x<xsize; x++){
+			for(int y=0; y<ysize; y++){
+				diff_grid[y*xsize + x] = serial_grid[y*xsize + x] ^ parallel_grid[y*xsize + x];
+			}
 		}
-		err = MPI_File_write(fh, (const void *)header, header_size, MPI_CHAR, &status);
-		if (err!=0) {
-			printf("Error writing header: %d\n", err);
-			return;
+		snprintf(diffname, 26 , "./differences/n_%05d.pgm", i);
+		write_pgm_image( (void *)diff_grid, 1, xsize, ysize, diffname);
 		}
-		MPI_File_close(&fh);
-	}
-	
-	//modify!!!!!!!!!!
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	err = MPI_File_open(MPI_COMM_WORLD, image_name, MPI_MODE_WRONLY, MPI_INFO_NULL, &fh);
-	if (err!=0) {
-		printf("Error opening file for writing data: %d\n", err);
-		return;
-	}
-
-	err += MPI_File_write_at_all(fh, (MPI_Offset)offset,(const void *)image, my_chunk * xsize * color_depth, MPI_UNSIGNED_CHAR, &status);
-	if (err!=0) {
-		printf("Error writing data: %d\n", err);
-		return;
-	}
-
-	MPI_Barrier(MPI_COMM_WORLD);
-
-	err = MPI_File_close(&fh);
-	if (err!=0) {
-		printf("Error closing file: %d\n", err);
-		return;
-	}
+	return 0;
 }
-
-// ######################################################################################################################################
-
-// ######################################################################################################################################
-
-void write_snapshot(unsigned char *playground, int maxval, int xsize, int ysize, const char *basename, int iteration)
-{
-	char *filename = (char *)malloc(strlen(basename)+10);
-	if (snprintf(filename, strlen(basename)+11, "%s_%05d.pgm", basename, iteration) < 0)
-		printf("Error writing the file name\n");
-	
-	write_pgm_image((void *)playground, maxval, xsize, ysize, (const char*)filename);
-}
-
-

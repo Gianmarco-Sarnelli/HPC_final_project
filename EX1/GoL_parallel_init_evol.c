@@ -417,7 +417,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 	
 	// Starting the iteration on the generations
 	for (int gen=0; gen<n; gen++) {
-		MPI_Request request;
+		MPI_Request bottom_ghost;
 		MPI_Request first;
 		MPI_Request last;
 		
@@ -425,7 +425,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 		MPI_Recv(top_ghost_row, xsize, MPI_UNSIGNED_CHAR, top_neighbour, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		
 		// From the beginning we ask for the bottom ghost row, but we put a wait only on the last line. The tag is 1
-		MPI_Irecv(bottom_ghost_row, xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 1 , MPI_COMM_WORLD, &request);
+		MPI_Irecv(bottom_ghost_row, xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 1 , MPI_COMM_WORLD, &bottom_ghost);
 		
 		// Updating the first line (no parallelization)
 		y = 0;
@@ -509,8 +509,10 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 				my_grid[pos + up_move + left_move]    += diff;  // diff now stores 4*(my_new - my_current)
 				my_grid[pos + up_move]                += diff;
 				my_grid[pos + up_move + right_move]   += diff;
-				// my_grid[pos + left_move]              += diff; // Sending the this information backward would create some irregularities, 
-										 // so the right way is to modify the last element of each fragment at the end
+				my_grid[pos + left_move]              += diff * (i == 0); 	// We pass backword this information only if this is the first
+												// element of the row. Sending the this information backward 
+												// would create some irregularities, so the right way is to 
+												// modify the last element of each fragment at the end
 				my_grid[pos + right_move]             += diff;
 				my_grid[pos + down_move + left_move]  += diff;
 				my_grid[pos + down_move]              += diff;
@@ -566,7 +568,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 		// Updating the last line (no parallelization)
 		
 		// Waiting for the bottom ghost row to arrive
-		MPI_Wait(&request, MPI_STATUS_IGNORE);
+		MPI_Wait(&bottom_ghost, MPI_STATUS_IGNORE);
 		
 		y = my_chunk - 1;
 		for (int x = 0; x < xsize; x++){
