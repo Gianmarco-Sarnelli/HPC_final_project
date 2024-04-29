@@ -92,8 +92,6 @@ int main ( int argc, char **argv ) {
 		unsigned long int n_cells = k*k;
 		double mean_time;
 		double time_elapsed;
-		// int mpi_provided_thread_level;  // the current thread support (how MPI will interface with other threads)
-		// MPI_Init_thread(&argc, &argv, MPI_THREAD_FUNNELED, &mpi_provided_thread_level);
 		
 		// Initializing MPI
 		MPI_Init(NULL, NULL);
@@ -151,8 +149,7 @@ int main ( int argc, char **argv ) {
 			}else if (s==0){
 				static_evolution(my_grid, grid, num_cells, displs, k, my_chunk, n, n);
 			}
-		}
-				
+		}		
 		MPI_Finalize();
 		gettimeofday(&end_time, NULL);
 
