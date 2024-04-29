@@ -147,29 +147,29 @@ int main(){
 	int maxval = 1;
 	int xsize;
 	int ysize;
-	char serial_base[] = "./serial_ordered/snapshot";
-	char parallel_base[] = "./parallel_ordered/snapshot";
-	char serialname[36];
-	char parallelname[38];
+	char serial_base[] = "./serial_static/snapshot";
+	char parallel_base[] = "./parallel_static/snapshot";
+	char serialname[35];
+	char parallelname[37];
 	char diffname[26];
 	for(int i=0; i<100; i++){
 		check = 0;
-		snprintf(serialname, 36 , "%s_%05d.pgm", serial_base, i);
-		snprintf(parallelname, 38 , "%s_%05d.pgm", parallel_base, i);
+		snprintf(serialname, 35 , "%s_%05d.pgm", serial_base, i);
+		snprintf(parallelname, 37 , "%s_%05d.pgm", parallel_base, i);
 		read_pgm_image((void **)&serial_grid, &maxval, &xsize, &ysize, serialname);
 		read_pgm_image((void **)&parallel_grid, &maxval, &xsize, &ysize, parallelname);
-		unsigned char *diff_grid = (unsigned char *)malloc(xsize*ysize * sizeof(unsigned char));
+		//unsigned char *diff_grid = (unsigned char *)malloc(xsize*ysize * sizeof(unsigned char));
 		for(int x=0; x<xsize; x++){
 			for(int y=0; y<ysize; y++){
-				diff_grid[y*xsize + x] = serial_grid[y*xsize + x] ^ parallel_grid[y*xsize + x];
+				//diff_grid[y*xsize + x] = serial_grid[y*xsize + x] ^ parallel_grid[y*xsize + x];
 				if (serial_grid[y*xsize + x] !=  parallel_grid[y*xsize + x]){
 					check ++;
 				}
 			}
 		}
 		printf("Number of errors checked: %d\n", check);
-		snprintf(diffname, 26 , "./differences/n_%05d.pgm", i);
-		write_pgm_image( (void *)diff_grid, 1, xsize, ysize, diffname);
+		//snprintf(diffname, 26 , "./differences/n_%05d.pgm", i);
+		//write_pgm_image( (void *)diff_grid, 1, xsize, ysize, diffname);
 	}
 	return 0;
 }

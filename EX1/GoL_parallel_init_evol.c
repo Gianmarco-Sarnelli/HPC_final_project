@@ -81,7 +81,8 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 	int up_move = -xsize;      // This will make it go up a row (There's no way of looping back to the top row because we use ghost rows)
 	int down_move = xsize;     // This will make it go down a row
 	int pos;          // pos = y*xsize + x.   Current position
-	
+	int stride = 128;  // chunk size for omp
+
 	int rank, size;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank); //get the rank of the current process
 	MPI_Comm_size(MPI_COMM_WORLD, &size); //get the total number of processes
@@ -122,27 +123,27 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 		
 		
 		// Parallel evolution on the first row
-		#pragma omp parallel for schedule( static, stride )
+		#pragma omp parallel for schedule( static, stride ) private(left_move, right_move, nei, my_current)
 		for(int x=0; x<xsize; x++){
 			left_move = -1 + (xsize * (x == 0)); //This will make it go up a row if on the left border
 			right_move = +1 - (xsize * (x == xsize-1)); //This will make it go down a row if on the right border
 			
 			nei = 0;
 			// The state of the cell in this generation is stored in the same bit as the "1" bit in current_state (first or second)
-			nei += top_ghost_row[x + left_move] & current_state;
-			nei += top_ghost_row[x] & current_state;
-			nei += top_ghost_row[x + right_move] & current_state;
-			nei += mygrid[x + left_move] & current_state;
-			nei += mygrid[x + right_move] & current_state;
-			nei += mygrid[x + down_move + left_move] & current_state;
-			nei += mygrid[x + down_move] & current_state;
-			nei += mygrid[x + down_move + right_move] & current_state;
-			nei >>= (current_state -1); // rescaling the value of nei (if current_state = 2 then nei is stored starting from the second bit)
+			nei += top_ghost_row[x + left_move] & current;
+			nei += top_ghost_row[x] & current;
+			nei += top_ghost_row[x + right_move] & current;
+			nei += my_grid[x + left_move] & current;
+			nei += my_grid[x + right_move] & current;
+			nei += my_grid[x + down_move + left_move] & current;
+			nei += my_grid[x + down_move] & current;
+			nei += my_grid[x + down_move + right_move] & current;
+			nei >>= (current -1); // rescaling the value of nei (if current = 2 then nei is stored starting from the second bit)
 			
-			my_current = current_state & mygrid[x];
-			mygrid[x] = my_current + next_state * (  (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3))  );
+			my_current = current & my_grid[x];
+			my_grid[x] = my_current + next * (  (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3))  );
 			// This is done to preserve the current state and modify the next state (they are located on different bits)
-			// Explaination: the "next_state" bit will be one only if the cell is born or nothing happens on a live cell
+			// Explaination: the "next" bit will be one only if the cell is born or nothing happens on a live cell
 				
 		}
 		// Sending the fist line. The tag is 1
@@ -157,28 +158,27 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 		MPI_Request sendlast, recvbottom;
 		
 		// Parallel evolution on the last row
-		y = my_chunk-1;
-		#pragma omp parallel for schedule( static, stride )
+		#pragma omp parallel for schedule( static, stride ) private(left_move, right_move, pos,  nei, my_current)
 		for(int x=0; x<xsize; x++){
 			left_move = -1 + (xsize * (x == 0)); //This will make it go up a row if on the left border
 			right_move = +1 - (xsize * (x == xsize-1)); //This will make it go down a row if on the right border
 			
-			pos = y*xsize + x;   //Current position
+			pos = (my_chunk - 1)*xsize + x;   //Current position
 			
 			nei = 0;
 			
-			nei += mygrid[pos + up_move + left_move] & current_state;
-			nei += mygrid[pos + up_move] & current_state;
-			nei += mygrid[pos + up_move + right_move] & current_state;
-			nei += mygrid[pos + left_move] & current_state;
-			nei += mygrid[pos + right_move] & current_state;
-			nei += bottom_ghost_row[x + left_move] & current_state;
-			nei += bottom_ghost_row[x] & current_state;
-			nei += bottom_ghost_row[x + right_move] & current_state;
-			nei >>= (current_state -1); // rescaling the value of nei (if current_state = 2 then nei is stored starting from the second bit)
+			nei += my_grid[pos + up_move + left_move] & current;
+			nei += my_grid[pos + up_move] & current;
+			nei += my_grid[pos + up_move + right_move] & current;
+			nei += my_grid[pos + left_move] & current;
+			nei += my_grid[pos + right_move] & current;
+			nei += bottom_ghost_row[x + left_move] & current;
+			nei += bottom_ghost_row[x] & current;
+			nei += bottom_ghost_row[x + right_move] & current;
+			nei >>= (current -1); // rescaling the value of nei (if current = 2 then nei is stored starting from the second bit)
 			
-			my_current = current_state & mygrid[pos];
-			mygrid[pos] = my_current + next_state * (  (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3))  );
+			my_current = current & my_grid[pos];
+			my_grid[pos] = my_current + next * (  (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3))  );
 		}
 		// Sending the last row. The tag is 0
 		MPI_Isend(&my_grid[(my_chunk - 1) * xsize], xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 0, MPI_COMM_WORLD, &sendlast);
@@ -190,7 +190,7 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 		// The each thread will work on some row of the grid
 		// Each thread will (ideally) work on at least 3 rows at each time, so
 		// that (hopefully) there won't be any false sharing between threads
-		#pragma omp parallel for schedule( guided, 3 )
+		#pragma omp parallel for schedule( guided, 3 ) private(left_move, right_move, pos, nei, my_current)
 		for(int y=1; y<my_chunk-1; y++){
 		
 			for(int x=0; x<xsize; x++){
@@ -202,34 +202,34 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 				
 				nei = 0;
 				
-				nei += mygrid[pos + up_move + left_move] & current_state;
-				nei += mygrid[pos + up_move] & current_state;
-				nei += mygrid[pos + up_move + right_move] & current_state;
-				nei += mygrid[pos + left_move] & current_state;
-				nei += mygrid[pos + right_move] & current_state;
-				nei += mygrid[pos + down_move + left_move] & current_state;
-				nei += mygrid[pos + down_move] & current_state;
-				nei += mygrid[pos + down_move + right_move] & current_state;
-				nei >>= (current_state -1); // rescaling the value of nei (if current_state = 2 then nei is stored starting from the second bit)
+				nei += my_grid[pos + up_move + left_move] & current;
+				nei += my_grid[pos + up_move] & current;
+				nei += my_grid[pos + up_move + right_move] & current;
+				nei += my_grid[pos + left_move] & current;
+				nei += my_grid[pos + right_move] & current;
+				nei += my_grid[pos + down_move + left_move] & current;
+				nei += my_grid[pos + down_move] & current;
+				nei += my_grid[pos + down_move + right_move] & current;
+				nei >>= (current -1); // rescaling the value of nei (if current = 2 then nei is stored starting from the second bit)
 				
 				/*
-				if (!(mygrid[pos] & current_state) && nei == 3) {           // if the cell is born
-					mygrid[pos] |= next_state;
-				} else if ((mygrid[pos] & current_state) && !(nei == 2 || nei == 3)){     // if the cell dies
-					mygrid[pos] &= current_state;			     
+				if (!(my_grid[pos] & current) && nei == 3) {           // if the cell is born
+					my_grid[pos] |= next;
+				} else if ((my_grid[pos] & current) && !(nei == 2 || nei == 3)){     // if the cell dies
+					my_grid[pos] &= current;			     
 					// this is a trick to change the next state to zero while maintaining the current state intact
 				}else{      // if the cell stays the same
-					mygrid[pos]  = 3 * ((mygrid[pos] & current_state) == current_state);	// this is a trick to have them both
+					my_grid[pos]  = 3 * ((my_grid[pos] & current) == current);	// this is a trick to have them both
 														// equal to 1 (state 3) or to 0 (if the
 														// multiplication gives 0)
 				}*/
 				
 				//REWITTEN IN A FASTER WAY (without if jumps):
 				
-				my_current = current_state & mygrid[pos];
-				mygrid[pos] = my_current + next_state * (  (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3))  );
+				my_current = current & my_grid[pos];
+				my_grid[pos] = my_current + next * (  (!(my_current) && (nei == 3))  ||  (my_current && (nei == 2 || nei == 3))  );
 				//this is done to preserve the current state and modify the next state (they are located on different bits)
-				//explaination: the "next_state" bit will be one only if the cell is born or nothing happens on a live cell
+				//explaination: the "next" bit will be one only if the cell is born or nothing happens on a live cell
 			}
 		}// end omp parallel
 		
@@ -238,7 +238,7 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 			//writing the temporary grid
 			for (int i=0; i<xsize*my_chunk; i++){
 				//snap_grid will have the value of the grid at the current state
-				snap_grid[i] = ((my_grid[i] & current_state) == current_state);
+				snap_grid[i] = ((my_grid[i] & current) == current);
 			}
 			MPI_Gatherv((void*)snap_grid, num_cells[rank], MPI_UNSIGNED_CHAR, (void*)grid, num_cells, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 			if (rank == 0){	
@@ -258,7 +258,7 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 		//writing the temporary grid
 		for (int i=0; i<xsize*my_chunk; i++){
 			//snap_grid will have the value of the grid at the current state
-			snap_grid[i] = ((my_grid[i] & current_state) == current_state);
+			snap_grid[i] = ((my_grid[i] & current) == current);
 		}
 		MPI_Gatherv((void*)snap_grid, num_cells[rank], MPI_UNSIGNED_CHAR, (void*)grid, num_cells, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 		if (rank == 0){		
