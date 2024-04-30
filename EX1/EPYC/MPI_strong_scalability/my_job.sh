@@ -32,8 +32,8 @@ for size in 8000 1000 12000; do
   for procs in 1 $(seq 1 1 4); do
     echo -n "${size}," >> $datafile
     echo -n "${procs},">> $datafile
-    mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 0 -n 100 -s 0 -k $size >>$datafile
-    mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 1 -n 100 -s 0 -k $size >>$datafile
+    (mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 0 -n 50 -s 0 -k $size) >>$datafile
+    (mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 1 -n 50 -s 0 -k $size) >>$datafile
     
     truncate -s -1 $datafile  # removing the last comma in the line
     echo >> $datafile # printing the new line in the csv file

@@ -26,15 +26,15 @@ echo "size, procs, ordered_mean, static_mean" >> $datafile
 ## initialize a playground
 export OMP_NUM_THREADS=64
 
-procs=1
+procs=0
 ## increasing the sizes as 7000 * sqrt(num_processes)
 for size in 7000 9900 12124 14000; do
   mpirun -np 1 -N 1 --map-by socket parallel.x -i -f "initial_${size}.pgm" -k $size
   procs=$(($procs + 1)) # increasing the number of processes
   echo -n "${size}," >> $datafile
   echo -n "${procs},">> $datafile
-  mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 0 -n 100 -s 0 -k $size >>$datafile
-  mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 1 -n 100 -s 0 -k $size >>$datafile
+  (mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 0 -n 50 -s 0 -k $size) >>$datafile
+  (mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 1 -n 50 -s 0 -k $size) >>$datafile
   
   truncate -s -1 $datafile  # removing the last comma in the line
   echo >> $datafile # printing the new line in the csv file

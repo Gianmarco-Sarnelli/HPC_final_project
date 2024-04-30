@@ -418,13 +418,15 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 	// MPI communications stucture:
 	//
 	// Recv(top_ghost_row) (blocking)
-	// IRecv(bottom_ghost_row) (handle "request")
+	// IRecv(bottom_ghost_row) (handle: recvbottom)
 	// 	First row
-	// ISend(first row) (no wait)
+	// ISend(first row) (handle: sendfirst)
 	//	Central rows
-	// Wait(request)
+	// Wait(recvbottom)
+	// Wait(sendlast) (deallocating handle)
 	// 	Last row
-	// Isend(last row) (no wait)
+	// Wait(sendfirst) (deallocating handle)
+	// Isend(last row) (handle: sendlast)
 	
 	unsigned char *top_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
 	unsigned char *bottom_ghost_row = (unsigned char *)malloc(xsize * sizeof(unsigned char));
@@ -460,19 +462,18 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 	int error_sum;
 	
 	MPI_Request initial[2]; // Handle for the initialization comm.
-	MPI_Request nowait;
-
+	MPI_Request sendlast = MPI_REQUEST_NULL; // Initialized request to not get stuck in the wait
 	
 	// Getting the ghost rows
 	
 	// Each process sends its top row to its top neighbour
-	MPI_Isend(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 0, MPI_COMM_WORLD, &initial[0]);
+	MPI_Isend(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD, &initial[0]);
 	// Each process sends its bottom row to its bottom neighbour
-	MPI_Isend(&my_grid[(my_chunk - 1) * xsize], xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 1, MPI_COMM_WORLD, &initial[1]);
+	MPI_Isend(&my_grid[(my_chunk - 1) * xsize], xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 0, MPI_COMM_WORLD, &initial[1]);
 	// Each process receives its bottom ghost row from its bottom neighbour
-	MPI_Recv(bottom_ghost_row, xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	MPI_Recv(bottom_ghost_row, xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	// Each process receives its top ghost row from its top neighbour
-	MPI_Recv(top_ghost_row, xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	MPI_Recv(top_ghost_row, xsize, MPI_UNSIGNED_CHAR, top_neighbour, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	// Wait for both routines to complete
         MPI_Waitall(2, initial, MPI_STATUSES_IGNORE);
 	
@@ -517,29 +518,25 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 			my_grid[pos] = (nei*4) + (prev*2) + (my_grid[pos] & 1);
 		}	
 	} // The grid is initialized with the right encoding
-
+	
 	// Sending the bottom row of the last MPI process to begin the gen cycle. The tag is 0
 	if (rank == size-1){
-		MPI_Isend(&my_grid[(my_chunk - 1) * xsize], xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 0, MPI_COMM_WORLD, &nowait);
+		MPI_Send(&my_grid[(my_chunk - 1) * xsize], xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 0, MPI_COMM_WORLD);
 	}else{
 		// Also the top row of each MPI process (except the fist one!) should be sent for the cycle to begin. The tag is 1
-		MPI_Isend(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD, &nowait);
+		MPI_Send(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD);
 	}
-	MPI_Request_free(&nowait);
-	
 	
 	// Starting the iteration on the generations
 	
 	for (int gen=0; gen<n; gen++) {
-		MPI_Request bottom_ghost;
-		MPI_Request first;
-		MPI_Request last;
 		
 		// The beginning of an MPI cycle is marked by the blocking receive of the upper ghost row. The tag is 0
 		MPI_Recv(top_ghost_row, xsize, MPI_UNSIGNED_CHAR, top_neighbour, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		
 		// From the beginning we ask for the bottom ghost row, but we put a wait only on the last line. The tag is 1
-		MPI_Irecv(bottom_ghost_row, xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 1 , MPI_COMM_WORLD, &bottom_ghost);
+		MPI_Request recvbottom;
+		MPI_Irecv(bottom_ghost_row, xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 1 , MPI_COMM_WORLD, &recvbottom);
 		
 		// Updating the first line (no parallelization)
 		
@@ -585,8 +582,9 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 		}// end of work on the first line
 		
 		// Sending the fist line. The tag is 1
-		MPI_Isend(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD, &first);
-		MPI_Request_free(&first);
+		MPI_Request sendfirst;
+		MPI_Isend(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD, &sendfirst);
+		//MPI_Request_free(&sendfirst);
 		// No need to wait. The cycle cannot continue if the fist row cannot arrive
 		
 		
@@ -682,12 +680,15 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 				my_grid[pos] = (nei*4) + (my_grid[pos] & 3); // The first two bits stay the same
 			}
 				
-		}// End of iteration on central lines
-		
-		// Updating the last line (no parallelization)
+		}// End of iteration on central line
 		
 		// Waiting for the bottom ghost row to arrive
-		MPI_Wait(&bottom_ghost, MPI_STATUS_IGNORE);
+		MPI_Wait(&recvbottom, MPI_STATUS_IGNORE);
+		
+		// Deallocate sendlast. No MPI_Request_free() because https://blogs.cisco.com/performance/mpi_request_free-is-evil
+        	MPI_Wait(&sendlast, MPI_STATUS_IGNORE);
+		
+		// Updating the last line (no parallelization)
 		
 		y = my_chunk - 1;
 		for (int x = 0; x < xsize; x++){
@@ -743,12 +744,19 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 			}
 		}
 		
-		// The MPI cycle ends by sending the last row, without it the new gen wouldn't start. The tag is 0
-		MPI_Isend(&my_grid[(my_chunk - 1) * xsize], xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 0, MPI_COMM_WORLD, &last);
-		MPI_Request_free(&last);
+		// Deallocate sendfirst. No MPI_Request_free() because https://blogs.cisco.com/performance/mpi_request_free-is-evil
+        	MPI_Wait(&sendfirst, MPI_STATUS_IGNORE);
+		
+		// The MPI cycle ends by sending the last row, without it the bottom neighbour. The tag is 0
+		MPI_Request sendlast;
+		MPI_Isend(&my_grid[(my_chunk - 1) * xsize], xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 0, MPI_COMM_WORLD, &sendlast);
+		//MPI_Request_free(&sendlast);
 		// We don't care about the handle because there's no way of altering the last grid of this chunk if the new MPI process doesn't start
 
 	} // End cycle on gen
+	
+	// Deallocate sendlast.
+        MPI_Wait(&sendlast, MPI_STATUS_IGNORE);
 	
 	if (top_ghost_row != NULL)
 		free(top_ghost_row);

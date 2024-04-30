@@ -29,8 +29,8 @@ for th_socket in $(seq 1 1 12); do
 
   export OMP_NUM_THREADS=$th_socket
   echo -n "${th_socket}," >> $datafile
-  mpirun -np 1 --map-by socket parallel.x -r -f "initial_10000.pgm" -e 0 -n 100 -s 0 -k $size >>$datafile
-  mpirun -np 1 --map-by socket parallel.x -r -f "initial_10000.pgm" -e 1 -n 100 -s 0 -k $size >>$datafile
+  (mpirun -np 1 --map-by socket parallel.x -r -f "initial_10000.pgm" -e 0 -n 50 -s 0 -k 10000) >>$datafile
+  (mpirun -np 1 --map-by socket parallel.x -r -f "initial_10000.pgm" -e 1 -n 50 -s 0 -k 10000) >>$datafile
   
   truncate -s -1 $datafile  # removing the last comma in the line
   echo >> $datafile # printing the new line in the csv file
