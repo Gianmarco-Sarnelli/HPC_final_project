@@ -1,15 +1,15 @@
 #!/bin/bash
 #SBATCH --no-requeue
-#SBATCH --job-name="ThinStrong"
-#SBATCH --partition=THIN
+#SBATCH --job-name="EpycStrong"
+#SBATCH --partition=EPYC
 #SBATCH --nodes=2
 #SBATCH --ntasks=4
 #SBATCH --ntasks-per-node=2
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=64
 #SBATCH --exclusive
 #SBATCH --time=02:00:00
-#SBATCH --nodelist=thin[007-008]
-#SBATCH --output="ThinStrong.out"
+#SBATCH --nodelist=epyc[007-008]
+#SBATCH --output="EpycStrong.out"
 
 module load openMPI/4.1.5/gnu/12.2.1 
 export OMP_PLACES=cores
@@ -19,12 +19,12 @@ loc=$(pwd)
 cd ../..
 make parallel.x
 
-datafile=thin_strong_timing.csv
+datafile=epyc_strong_timing.csv
 
 echo "size, procs, ordered_mean, static_mean" >> $datafile
 
 ## initialize a playground
-export OMP_NUM_THREADS=12
+export OMP_NUM_THREADS=64
 
 ## repeating the test for different sizes
 for size in 8000 1000 12000; do

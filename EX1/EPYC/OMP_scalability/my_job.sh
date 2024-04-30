@@ -1,15 +1,15 @@
 #!/bin/bash
 #SBATCH --no-requeue
-#SBATCH --job-name="ThinOMP"
-#SBATCH --partition=THIN
+#SBATCH --job-name="EpycOMP"
+#SBATCH --partition=EPYC
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=12
+#SBATCH --cpus-per-task=64
 #SBATCH --exclusive
 #SBATCH --time=02:00:00
-#SBATCH --nodelist=thin[004]
-#SBATCH --output="ThinOMP.out"
+#SBATCH --nodelist=epyc[004]
+#SBATCH --output="EpycOMP.out"
 
 module load openMPI/4.1.5/gnu/12.2.1 
 export OMP_PLACES=cores
@@ -19,13 +19,24 @@ loc=$(pwd)
 cd ../..
 make parallel.x
 
-datafile=thin_omp_timing.csv
+datafile=epyc_omp_timing.csv
 
 echo "threads_per_socket, ordered_mean, static_mean" >> $datafile
 
 mpirun -np 1 -N 1 --map-by socket parallel.x -i -f "initial_10000.pgm" -k 10000
 
-for th_socket in $(seq 1 1 12); do
+
+## running a single time with only 1 thread to have a serial result
+th_socket=1
+export OMP_NUM_THREADS=$th_socket
+echo -n "${th_socket}," >> $datafile
+mpirun -np 1 --map-by socket parallel.x -r -f "initial_10000.pgm" -e 0 -n 100 -s 0 -k $size >>$datafile
+mpirun -np 1 --map-by socket parallel.x -r -f "initial_10000.pgm" -e 1 -n 100 -s 0 -k $size >>$datafile
+truncate -s -1 $datafile
+echo >> $datafile
+
+
+for th_socket in $(seq 4 4 64); do
 
   export OMP_NUM_THREADS=$th_socket
   echo -n "${th_socket}," >> $datafile
