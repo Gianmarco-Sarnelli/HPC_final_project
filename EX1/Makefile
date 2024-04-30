@@ -20,7 +20,7 @@ serial.x: GoL_serial.c
 	
 
 clean:
-	rm *.x *.o
+	rm *.x *.o *.pgm *.csv
 
 
 
