@@ -48,9 +48,14 @@ char *  init_playground(unsigned long int n_cells){
 
 void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cells, int *displs, int xsize, int my_chunk, int n, int s) {
 	
-	
-	// There might be problems if k is too small. Some threads might get less than 2 rows!
-	
+	// Applies the static evolution on the portion of the grid given to the MPI process.
+	// To increase the efficiency only a single grid of chars is used and the state of
+	// a single cell is stored in alternating positions between bit 1 and bit 2.
+	// To simplify branch redictions a minimal number of if cases are used. Most operations just use boolean logic.
+	// To indicate where the nighbouring cells are located in the grid (since they might be on the edge of it) some
+	// variables like left_move and right_move are used, this is to avoid the use of if cases.
+	//
+	// To reduce the waiting time to send and receive the upper/bottom row, the following MPI structure is used:
 	
 	// MPI communications stucture:
 	//
@@ -120,7 +125,7 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 		// Update the first and last line as soon as they come
 		// The parallel evolution of the border rows is done by dividing them in 
 		// chunks of size "stride" to avoid working on the same cache line.
-		
+		// (stride = 2 * length_cache_line)
 		
 		// Parallel evolution on the first row
 		#pragma omp parallel for schedule( static, stride ) private(left_move, right_move, nei, my_current)
@@ -186,10 +191,10 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 		MPI_Irecv(bottom_ghost_row, xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 1, MPI_COMM_WORLD, &recvbottom);
 		
 		
-		// Parallel evolution of the central threads
-		// The each thread will work on some row of the grid
+		// Parallel evolution of the central rows.
+		// The work on rows is shared between omp threads.
 		// Each thread will (ideally) work on at least 3 rows at each time, so
-		// that (hopefully) there won't be any false sharing between threads
+		// that (hopefully) there won't be any false sharing between threads.
 		#pragma omp parallel for schedule( guided, 3 ) private(left_move, right_move, pos, nei, my_current)
 		for(int y=1; y<my_chunk-1; y++){
 		
@@ -429,7 +434,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 	char val;
 	char diff;
 	char prev; // Will be 1 if the previous cell is alive and 0 otherwise
-	char nei; // Number of live neighbours
+	char nei; // Number of alive neighbours
 	char my_current, my_new; // current/new state of the cell. It can be either 1 or 0
 	int y;
 	int stride = 128;  // The minimum size of the fragment of the row in which a thread will work
@@ -459,6 +464,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 
 	
 	// Getting the ghost rows
+	
 	// Each process sends its top row to its top neighbour
 	MPI_Isend(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 0, MPI_COMM_WORLD, &initial[0]);
 	// Each process sends its bottom row to its bottom neighbour
@@ -471,6 +477,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
         MPI_Waitall(2, initial, MPI_STATUSES_IGNORE);
 	
 	// Initializing the grid to get the right value of prev and nei for all cells 
+	
 	for (int y = 0; y<my_chunk; y++){
 		for (int x = 0; x<xsize; x++){
 		
@@ -522,6 +529,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 	
 	
 	// Starting the iteration on the generations
+	
 	for (int gen=0; gen<n; gen++) {
 		MPI_Request bottom_ghost;
 		MPI_Request first;
@@ -534,6 +542,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 		MPI_Irecv(bottom_ghost_row, xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 1 , MPI_COMM_WORLD, &bottom_ghost);
 		
 		// Updating the first line (no parallelization)
+		
 		y = 0;
 		for (int x = 0; x < xsize; x++){
 			
@@ -586,10 +595,12 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 		
 						
 		// Updating the central lines ( PARALLELIZATION ) 
+		
 		for (int y = 1; y < my_chunk-1; y++){
 			#pragma omp parallel for schedule( static, 1 ) private(pos, nei, left_move, right_move, prev, my_current, my_new, val, diff)
 			for (int i = 0; i<count; i++){
 				// Updating the first element
+				
 				pos = y*xsize + l_ind_pos[i];
 				left_move = -1 + (xsize * ((pos%xsize) == 0));
 				right_move = +1 - (xsize * ((pos%xsize) == (xsize-1)));
@@ -625,6 +636,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 				my_grid[pos + down_move + right_move] += diff;
 				
 				// Working on the other elements of the fragment
+				
 				for(int j = 1; j<l_ind_dist[i]; j++){
 					pos++;
 					nei = 0;
@@ -653,6 +665,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 			}// End of the omp parallel
 			
 			// Modifying the value of nei in the last element of each fragment
+			
 			for (int i = 0; i<count; i++){
 				pos = y*xsize + l_ind_pos[i] + l_ind_dist[i] - 1;
 				left_move = -1 + (xsize * ((pos%xsize) == 0));
@@ -711,11 +724,11 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 		}// end of work on the last line
 		
 		// Checking if the grid is correct
-		errors = sanity_check_ordered(my_grid, xsize, my_chunk, top_ghost_row, bottom_ghost_row);
-		MPI_Reduce(&errors, &error_sum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
-		if (rank == 0){
-			printf("In gen %d there are %d errors in the grid\n", gen, error_sum);
-		}
+		//errors = sanity_check_ordered(my_grid, xsize, my_chunk, top_ghost_row, bottom_ghost_row);
+		//MPI_Reduce(&errors, &error_sum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+		//if (rank == 0){
+		//	printf("In gen %d there are %d errors in the grid\n", gen, error_sum);
+		//}
 		
 		// Writing the snapshot file
 		if(gen % s == 0){

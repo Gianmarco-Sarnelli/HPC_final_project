@@ -163,13 +163,10 @@ int main ( int argc, char **argv ) {
 			free(my_grid);
 		
 		if (my_rank == 0) {
-			// 		MODIFY THIS!!!!!!!
-			
-			printf("%f\n", mean_time);
 		
-			//FILE *fp = fopen("timing.csv", "a"); 
-			//fprintf(fp, "%f,", mean_time);
-			//fclose(fp);
+			FILE *fp = fopen("timing.csv", "a"); 
+			fprintf(fp, "%f,", mean_time);
+			fclose(fp);
 		}
 
 	}
