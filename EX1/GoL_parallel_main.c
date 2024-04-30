@@ -102,10 +102,10 @@ int main ( int argc, char **argv ) {
 		MPI_Comm_rank(MPI_COMM_WORLD, &my_rank);
 		MPI_Comm_size(MPI_COMM_WORLD, &size);
 		// Checking the number of processes and threads
-		if (my_rank == 0){
-			printf("MPI initialized with %d processes\n", size);
-			printf("There are %d omp threads \n", omp_get_num_threads());
-		}
+		//if (my_rank == 0){
+		//	printf("MPI initialized with %d processes\n", size);
+		//	printf("There are %d omp threads \n", omp_get_num_threads());
+		//}
 		
 		// Creating variables to subdivide the playground among MPI processes
 		int chunk = k / size;
@@ -163,10 +163,10 @@ int main ( int argc, char **argv ) {
 			free(my_grid);
 		
 		if (my_rank == 0) {
-		
-			FILE *fp = fopen("timing.csv", "a"); 
-			fprintf(fp, "%f,", mean_time);
-			fclose(fp);
+			printf("%f,", mean_time);
+			//FILE *fp = fopen("timing.csv", "a"); 
+			//fprintf(fp, "%f,", mean_time);
+			//fclose(fp);
 		}
 
 	}
