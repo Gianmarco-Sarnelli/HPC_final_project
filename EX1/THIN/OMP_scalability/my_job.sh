@@ -21,7 +21,7 @@ make parallel.x
 
 datafile=thin_omp_timing.csv
 
-echo "threads_per_socket, ordered_mean, static_mean" >> $datafile
+echo "threads_per_socket, ordered_mean, static_mean" > $datafile
 
 mpirun -np 1 -N 1 --map-by socket parallel.x -i -f "initial_10000.pgm" -k 10000
 

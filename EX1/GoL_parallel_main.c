@@ -133,6 +133,8 @@ int main ( int argc, char **argv ) {
 		// Scattering the grid across the processes
 		MPI_Scatterv(grid, num_cells, displs, MPI_UNSIGNED_CHAR, my_grid, num_cells[my_rank], MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
 		
+		MPI_Barrier(MPI_COMM_WORLD);
+
 		// Starting the evolution
 		gettimeofday(&start_time, NULL);
 		if(e == ORDERED){
@@ -149,9 +151,19 @@ int main ( int argc, char **argv ) {
 			}else if (s==0){
 				static_evolution(my_grid, grid, num_cells, displs, k, my_chunk, n, n);
 			}
-		}		
+		}
+//test
+printf("finalizing:\n");
+
 		MPI_Finalize();
+//test
+printf("finalize done\n");
+
 		gettimeofday(&end_time, NULL);
+
+//Test
+printf("Evolution completed \n");
+
 
 		time_elapsed = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1e6;
 

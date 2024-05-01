@@ -38,12 +38,11 @@ void write_pgm_image( void *image, int maxval, int xsize, int ysize, const char 
 	//
 
 	int color_depth = 1 + ( maxval > 255 );
+	
 
 	fprintf(image_file, "P5\n%8d %8d\n%d\n", xsize, ysize, maxval);
 
-	// Writing file
-	fwrite( image, 1, xsize*ysize*color_depth, image_file);  
-
+	fwrite( image, 1, xsize*ysize*color_depth, image_file);
 	fclose(image_file); 
 	return;
 

@@ -21,7 +21,7 @@ make parallel.x
 
 datafile=thin_strong_timing.csv
 
-echo "size, procs, ordered_mean, static_mean" >> $datafile
+echo "size, procs, ordered_mean, static_mean" > $datafile
 
 ## initialize a playground
 export OMP_NUM_THREADS=12
