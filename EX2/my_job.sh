@@ -21,7 +21,7 @@ module load mkl/latest
 module load openBLAS/0.3.23-omp
 
 export LD_LIBRARY_PATH=/:$LD_LIBRARY_PATH
-export LD_LIBRARY_PATH=/:$LD_LIBRARY_PATH
+
 # Setting the right library path for blis
 if [ "${partition}" == "EPYC" ]; then
   export LD_LIBRARY_PATH=/u/dssc/gsarne00/myblis/lib:$LD_LIBRARY_PATH
@@ -40,11 +40,8 @@ make cpu loc=$location lib=$blislib
 cd $location
 
 # Preparing the csv files
-for lib in openblas mkl blis; do
-  for prec in float double; do
-    echo "matrix_size,num_threads,openblas_float,openblas_double,mkl_float,mkl_double,blis_float,blis_double" > results.csv 
-  done
-done
+echo "matrix_size,num_threads,openblas_float,openblas_double,mkl_float,mkl_double,blis_float,blis_double" > results.csv 
+
 
 # Running the code
 # we will repeat the run 4 times and saving the mean of the GFLOPS
@@ -54,7 +51,7 @@ echo "running the code"
 if [ "${fixed}" == "cores" ]; then
 
   
-  export OMP_NUM_THREADS="${n_thread}"  # This would be a problem if we run more jobs simultaneously
+  export OMP_NUM_THREADS="${n_thread}"
   for MSIZE in {2000..20000..2000}; do
     echo -n "${MSIZE},${OMP_NUM_THREADS}," >> results.csv
     
@@ -91,9 +88,9 @@ if [ "${fixed}" == "cores" ]; then
 # fixed size, scale on cores
 elif [ "${fixed}" == "size" ]; then
   MSIZE=10000
-  # There are different cycles depending on the partition, on THIN there will be 24 runs, while in EPYC there will be 16
-  start=$((${n_thread} / 16))
-  step=$((${n_thread} / 16))
+  # There are different cycles depending on the partition, on THIN there will be 12 runs, while in EPYC there will be 8
+  start=$((${n_thread} / 8))
+  step=$((${n_thread} / 8))
   
   for (( OMP_NUM_THREADS=$start; OMP_NUM_THREADS <= $n_thread; OMP_NUM_THREADS+=$step )); do
     export OMP_NUM_THREADS
@@ -120,7 +117,7 @@ elif [ "${fixed}" == "size" ]; then
         x=$(($g1 + $g2 + $g3 + $g4))
         echo -n "$(($x / 4))," >> results.csv 
         
-        echo "Using ${lib} ${prec} with ${n_thread} threads on a matrix of size ${MSIZE} the average GFLOPS are $(($x / 4))"
+        echo "Using ${lib} ${prec} with ${OMP_NUM_THREADS} threads on a matrix of size ${MSIZE} the average GFLOPS are $(($x / 4))"
         
       done
     done
@@ -135,26 +132,3 @@ echo "Job ${partition}_fixed_${fixed}_${policy} ended"
 cd ../../..
 make clean loc=$location lib=$blislib
 module purge
-
-
-
-
-
-
-# the print of gemm.c is:
-#Result of a run 5: 
- #This example computes real matrix C=alpha*A*B+beta*C using 
- #BLAS function dgemm, where A, B, and  C are matrices and 
- #alpha and beta are scalars
-
- #Initializing data for matrix multiplication C=A*B for matrix 
- #A(2000x2000) and matrix B(2000x2000)
-
- #Using float 
-
- #Computing matrix product using gemm function via CBLAS interface 
-
- #Elapsed time 0.21038259 s
-
-
-#2000x2000x2000	0.021038 s	760.519205 GFLOPS
