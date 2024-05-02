@@ -153,16 +153,16 @@ int main ( int argc, char **argv ) {
 			}
 		}
 //test
-printf("finalizing:\n");
+//printf("finalizing:\n");
 
 		MPI_Finalize();
 //test
-printf("finalize done\n");
+//printf("finalize done\n");
 
 		gettimeofday(&end_time, NULL);
 
 //Test
-printf("Evolution completed \n");
+//printf("Evolution completed \n");
 
 
 		time_elapsed = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1e6;

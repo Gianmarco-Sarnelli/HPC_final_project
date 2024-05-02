@@ -20,14 +20,6 @@ for partition in EPYC THIN; do
   else
     architecture=Intel
   fi
-  
-  # Choosing the nodelist
-  if [ "$partition" == "EPYC" ];then
-    nodelist=epyc[001-008]
-  else
-    nodelist=thin[001-010]
-  fi
-
 
   for fixed in cores size; do
     
@@ -45,7 +37,7 @@ for partition in EPYC THIN; do
       export OMP_PROC_BIND=$policy  # Instructs the execution environment to assign the threads in the team to the places that are close to the place of the parent thread
       
       # Running the sbatch file
-      sbatch --job-name="${partition}_fixed_${fixed}_${policy}" --partition="${partition}" --account dssc -N 1 -n 1 --cpus-per-task="${n_thread}" --output="${partition}_fixed_${fixed}_${policy}.out" --nodelist="${nodelist}" my_job.sh "${partition}" "${architecture}" "${fixed}" "${policy}" "${n_thread}"
+      sbatch --job-name="${partition}_fixed_${fixed}_${policy}" --partition="${partition}" --account dssc -N 1 -n 1 --cpus-per-task="${n_thread}" --output="${partition}_fixed_${fixed}_${policy}.out"  my_job.sh "${partition}" "${architecture}" "${fixed}" "${policy}" "${n_thread}"
         
       echo "job ${partition}_fixed_${fixed}_${policy} is running"
        

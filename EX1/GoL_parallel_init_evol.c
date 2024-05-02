@@ -93,9 +93,9 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 	MPI_Comm_size(MPI_COMM_WORLD, &size); //get the total number of processes
 	
 //TEST
-if (rank == 0){
-printf("static evolution:");
-}
+//if (rank == 0){
+//printf("static evolution:");
+//}
 
 	int top_neighbour = (rank - 1 + size) % size; // Rank of the MPI process above
 	int bottom_neighbour = (rank + 1) % size; // Rank of the MPI process below
@@ -114,7 +114,7 @@ printf("static evolution:");
 	MPI_Irecv(top_ghost_row, xsize, MPI_UNSIGNED_CHAR, top_neighbour, 0,MPI_COMM_WORLD, &recvtop);
 
 // TEST
-printf("initialization completed\n");
+//printf("initialization completed\n");
 	
 	MPI_Barrier(MPI_COMM_WORLD);
 
@@ -122,7 +122,7 @@ printf("initialization completed\n");
 	for (int gen=0; gen<n; gen++) {
 	
 // TEST
-printf("starting the gen %d in process %d\n", gen, rank);
+//printf("starting the gen %d in process %d\n", gen, rank);
 
 		// Alternating positions of the current and next states of the system
 		// The value of current and next alternate between 1 and 2 (first and second bit)
@@ -252,22 +252,22 @@ printf("starting the gen %d in process %d\n", gen, rank);
 		}// end omp parallel
 		
 		// Writing the snapshot file
-		//if((gen % s == 0) && (s != n)){
-		//	//writing the temporary grid
-		//	for (int i=0; i<xsize*my_chunk; i++){
-		//		//snap_grid will have the value of the grid at the current state
-		//		snap_grid[i] = ((my_grid[i] & current) == current);
-		//	}
-		//	MPI_Gatherv((void*)snap_grid, num_cells[rank], MPI_UNSIGNED_CHAR, (void*)grid, num_cells, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-		//	if (rank == 0){	
-		//		write_snapshot(grid, 1, xsize, xsize, "./Snapshots/parallel_static/snapshot", gen);
-		//	}
-		//	MPI_Barrier(MPI_COMM_WORLD);
-		//}
+		if((gen % s == 0) && (s != n)){
+			//writing the temporary grid
+			for (int i=0; i<xsize*my_chunk; i++){
+				//snap_grid will have the value of the grid at the current state
+				snap_grid[i] = ((my_grid[i] & current) == current);
+			}
+			MPI_Gatherv((void*)snap_grid, num_cells[rank], MPI_UNSIGNED_CHAR, (void*)grid, num_cells, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+			if (rank == 0){	
+				write_snapshot(grid, 1, xsize, xsize, "./Snapshots/parallel_static/snapshot", gen);
+			}
+			MPI_Barrier(MPI_COMM_WORLD);
+		}
 		
 
 //Test
-printf("ending the gen %d in process %d\n", gen, rank);
+//printf("ending the gen %d in process %d\n", gen, rank);
 		
 	} // End cycle on gen
 	
@@ -278,45 +278,47 @@ printf("ending the gen %d in process %d\n", gen, rank);
        	MPI_Wait(&recvbottom, MPI_STATUS_IGNORE);
 
 //test
-printf("handles deallocated, job almost done\n");
-
+//printf("handles deallocated, job almost done\n");
+	
+	// Waiting for all processes before ending
+	MPI_Barrier(MPI_COMM_WORLD);
 
 	if (top_ghost_row != NULL){
 		free(top_ghost_row);
 	}
 
 //test
-printf("top ghost freed\n");
+//printf("top ghost freed\n");
 
 	if (bottom_ghost_row != NULL)
 		free(bottom_ghost_row);
 
 //test
-printf("bottom ghost freed\n");
+//printf("bottom ghost freed\n");
 
 	// Writing the snapshot file
-	//if(s == n){
-	//	//writing the temporary grid
-	//	for (int i=0; i<xsize*my_chunk; i++){
-	//		//snap_grid will have the value of the grid at the current state
-	//		snap_grid[i] = ((my_grid[i] & current) == current);
-	//	}
-	//	MPI_Gatherv((void*)snap_grid, num_cells[rank], MPI_UNSIGNED_CHAR, (void*)grid, num_cells, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
-	//	if (rank == 0){		
-	//		write_snapshot(grid, 1, xsize, xsize, "./Snapshots/parallel_static/snapshot", n);
-	//	}
-	//	MPI_Barrier(MPI_COMM_WORLD);
-	//}
+	if(s == n){
+		//writing the temporary grid
+		for (int i=0; i<xsize*my_chunk; i++){
+			//snap_grid will have the value of the grid at the current state
+			snap_grid[i] = ((my_grid[i] & current) == current);
+		}
+		MPI_Gatherv((void*)snap_grid, num_cells[rank], MPI_UNSIGNED_CHAR, (void*)grid, num_cells, displs, MPI_UNSIGNED_CHAR, 0, MPI_COMM_WORLD);
+		if (rank == 0){		
+			write_snapshot(grid, 1, xsize, xsize, "./Snapshots/parallel_static/snapshot", n);
+		}
+		MPI_Barrier(MPI_COMM_WORLD);
+	}
 	if (snap_grid != NULL)
 		free(snap_grid);
 
 //test
-printf("snap grid freed\n");
+//printf("snap grid freed\n");
 
 
 
 //test
-printf("RETURNING\n");	
+//printf("RETURNING\n");	
 
 	return;
 }
@@ -591,6 +593,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 //printf("Top_ghost row received, starting the generation %d on process %d\n", gen, rank);
 
 		// Deallocate sendfirst. No MPI_Request_free() because https://blogs.cisco.com/performance/mpi_request_free-is-evil
+		// Idea from Mathias https://github.com/octodoge
                 MPI_Wait(&sendfirst, MPI_STATUS_IGNORE);
 
 // TEST
@@ -750,6 +753,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 
 
 		// Deallocate sendlast. No MPI_Request_free() because https://blogs.cisco.com/performance/mpi_request_free-is-evil
+		// Idea from Mathias https://github.com/octodoge
         	MPI_Wait(&sendlast, MPI_STATUS_IGNORE);
 		
 // TEST
@@ -841,6 +845,10 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 	if (rank != size-1){
 		MPI_Recv(bottom_ghost_row, xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
+
+        // Waiting for all processes before ending
+        MPI_Barrier(MPI_COMM_WORLD);
+
 	
 	if (top_ghost_row != NULL)
 		free(top_ghost_row);

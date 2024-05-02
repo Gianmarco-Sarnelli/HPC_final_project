@@ -27,9 +27,9 @@ echo "size, procs, ordered_mean, static_mean" > $datafile
 export OMP_NUM_THREADS=12
 
 ## repeating the test for different sizes
-for size in 8000 1000 12000; do
+for size in 10000 15000 20000; do
   mpirun -np 1 -N 1 --map-by socket parallel.x -i -f "initial_${size}.pgm" -k $size
-  for procs in 1 $(seq 1 1 4); do
+  for procs in $(seq 1 1 4); do
     echo -n "${size}," >> $datafile
     echo -n "${procs},">> $datafile
     (mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 0 -n 50 -s 0 -k $size) >>$datafile

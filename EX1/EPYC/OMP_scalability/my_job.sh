@@ -8,7 +8,6 @@
 #SBATCH --cpus-per-task=64
 #SBATCH --exclusive
 #SBATCH --time=02:00:00
-#SBATCH --nodelist=epyc[004]
 #SBATCH --output="EpycOMP.out"
 
 module load openMPI/4.1.5/gnu/12.2.1 

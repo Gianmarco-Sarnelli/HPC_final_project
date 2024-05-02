@@ -8,7 +8,7 @@ BLISROOT=/u/dssc/gsarne00/myblis
 
 
 
-srun -n1 ./configure --enable-cblas --enable-threading=openmp --prefix=/u/dssc/gsarne00/myblis auto
+##srun -n1 ./configure --enable-cblas --enable-threading=openmp --prefix=/u/dssc/gsarne00/myblis auto
 
 
 
