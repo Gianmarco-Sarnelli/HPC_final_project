@@ -152,18 +152,10 @@ int main ( int argc, char **argv ) {
 				static_evolution(my_grid, grid, num_cells, displs, k, my_chunk, n, n);
 			}
 		}
-//test
-//printf("finalizing:\n");
 
 		MPI_Finalize();
-//test
-//printf("finalize done\n");
 
 		gettimeofday(&end_time, NULL);
-
-//Test
-//printf("Evolution completed \n");
-
 
 		time_elapsed = (end_time.tv_sec - start_time.tv_sec) + (end_time.tv_usec - start_time.tv_usec) / 1e6;
 

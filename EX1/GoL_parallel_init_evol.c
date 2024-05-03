@@ -91,11 +91,6 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 	int rank, size;
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank); //get the rank of the current process
 	MPI_Comm_size(MPI_COMM_WORLD, &size); //get the total number of processes
-	
-//TEST
-//if (rank == 0){
-//printf("static evolution:");
-//}
 
 	int top_neighbour = (rank - 1 + size) % size; // Rank of the MPI process above
 	int bottom_neighbour = (rank + 1) % size; // Rank of the MPI process below
@@ -112,18 +107,12 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 	MPI_Irecv(bottom_ghost_row, xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 1, MPI_COMM_WORLD, &recvbottom);
 	// Each process receives its top ghost row from its top neighbour
 	MPI_Irecv(top_ghost_row, xsize, MPI_UNSIGNED_CHAR, top_neighbour, 0,MPI_COMM_WORLD, &recvtop);
-
-// TEST
-//printf("initialization completed\n");
 	
 	MPI_Barrier(MPI_COMM_WORLD);
 
 	// Starting the iteration on the generations
 	for (int gen=0; gen<n; gen++) {
 	
-// TEST
-//printf("starting the gen %d in process %d\n", gen, rank);
-
 		// Alternating positions of the current and next states of the system
 		// The value of current and next alternate between 1 and 2 (first and second bit)
 		current = gen % 2 + 1;
@@ -264,11 +253,7 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 			}
 			MPI_Barrier(MPI_COMM_WORLD);
 		}
-		
-
-//Test
-//printf("ending the gen %d in process %d\n", gen, rank);
-		
+				
 	} // End cycle on gen
 	
 	// Deallocating all the handles
@@ -276,9 +261,6 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 	MPI_Wait(&sendfirst, MPI_STATUS_IGNORE);
 	MPI_Wait(&sendlast, MPI_STATUS_IGNORE);
        	MPI_Wait(&recvbottom, MPI_STATUS_IGNORE);
-
-//test
-//printf("handles deallocated, job almost done\n");
 	
 	// Waiting for all processes before ending
 	MPI_Barrier(MPI_COMM_WORLD);
@@ -287,14 +269,8 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 		free(top_ghost_row);
 	}
 
-//test
-//printf("top ghost freed\n");
-
 	if (bottom_ghost_row != NULL)
 		free(bottom_ghost_row);
-
-//test
-//printf("bottom ghost freed\n");
 
 	// Writing the snapshot file
 	if(s == n){
@@ -312,14 +288,6 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 	if (snap_grid != NULL)
 		free(snap_grid);
 
-//test
-//printf("snap grid freed\n");
-
-
-
-//test
-//printf("RETURNING\n");	
-
 	return;
 }
 
@@ -327,7 +295,7 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 
 // ######################################################################################################################################
 
-int l_ind(unsigned char *my_grid, int xsize, int stride, int *l_ind_pos, int *l_ind_dist){
+int l_ind(unsigned char *my_grid, int y, int xsize, int stride, int *l_ind_pos, int *l_ind_dist){
         // Creates the arrays of the line_independent points and the number count
         char val, check;
         int i = stride -1; // starting position
@@ -335,7 +303,7 @@ int l_ind(unsigned char *my_grid, int xsize, int stride, int *l_ind_pos, int *l_
         int count = 1;
         l_ind_pos[0] = 0; // makes sure that the first l_ind cell is the first one
         while (i<xsize){
-                val = my_grid[xsize + i]; // value of the cell in the following line for x = i
+                val = my_grid[(y+1)*xsize + i]; // value of the cell in the following line for x = i
                 // Checking if the cell is a l_ind point
                 check = (val<4) || (val>19) || (val==9) || (val==15) || (val==7) || (val==17) || (val==4) || (val==6) || (val==10) || (val==16);
                 if (check){
@@ -525,9 +493,6 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 	// Wait for both routines to complete
         MPI_Waitall(2, initial, MPI_STATUSES_IGNORE);
 
-// TEST
-//printf("Initialization messages completed\n");
-
 	// Initializing the grid to get the right value of prev and nei for all cells 
 	
 	for (int y = 0; y<my_chunk; y++){
@@ -578,9 +543,6 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 	if (rank != 0){
 		MPI_Send(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD);
 	}
-	
-// TEST
-//printf("The starting messages are sent on process %d\n", rank);
 
 	// Starting the iteration on the generations
 	
@@ -588,17 +550,10 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 		
 		// The beginning of an MPI cycle is marked by the blocking receive of the upper ghost row. The tag is 0
 		MPI_Recv(top_ghost_row, xsize, MPI_UNSIGNED_CHAR, top_neighbour, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		
-// TEST
-//printf("Top_ghost row received, starting the generation %d on process %d\n", gen, rank);
 
 		// Deallocate sendfirst. No MPI_Request_free() because https://blogs.cisco.com/performance/mpi_request_free-is-evil
 		// Idea from Mathias https://github.com/octodoge
                 MPI_Wait(&sendfirst, MPI_STATUS_IGNORE);
-
-// TEST
-//printf("first row was sent (freeing the handle) in generation %d on process %d\n", gen, rank);
-
 
 		// From the beginning we ask for the bottom ghost row, but we put a wait only on the last line. The tag is 1
 		MPI_Request recvbottom;
@@ -652,9 +607,8 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 		MPI_Isend(&my_grid[0], xsize, MPI_UNSIGNED_CHAR, top_neighbour, 1, MPI_COMM_WORLD, &sendfirst);
 		
 		// Creating the arrays of the line_independent points
-		count =	l_ind(my_grid, xsize, stride, l_ind_pos, l_ind_dist);
-		
-						
+		count =	l_ind(my_grid, y, xsize, stride, l_ind_pos, l_ind_dist);
+					
 		// Updating the central lines ( PARALLELIZATION ) 
 		
 		for (int y = 1; y < my_chunk-1; y++){
@@ -742,24 +696,19 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 				nei+=my_grid[pos + down_move + right_move] & 1;
 				my_grid[pos] = (nei*4) + (my_grid[pos] & 3); // The first two bits stay the same
 			}
+			
+			// Creating the next arrays of the line_independent points
+			count =	l_ind(my_grid, y, xsize, stride, l_ind_pos, l_ind_dist);
 				
 		}// End of iteration on central line
 		
 		// Waiting for the bottom ghost row to arrive
 		MPI_Wait(&recvbottom, MPI_STATUS_IGNORE);
-		
-// TEST
-//printf("Bottom_ghost row received, in generation %d on process %d\n", gen, rank);
-
 
 		// Deallocate sendlast. No MPI_Request_free() because https://blogs.cisco.com/performance/mpi_request_free-is-evil
 		// Idea from Mathias https://github.com/octodoge
         	MPI_Wait(&sendlast, MPI_STATUS_IGNORE);
 		
-// TEST
-//printf("Last row was sent (freeing the handle) in generation %d on process %d\n", gen, rank);
-
-
 		// Updating the last line (no parallelization)
 		
 		y = my_chunk - 1;
@@ -807,10 +756,6 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
                 MPI_Request sendlast;
                 MPI_Isend(&my_grid[(my_chunk - 1) * xsize], xsize, MPI_UNSIGNED_CHAR, bottom_neighbour, 0, MPI_COMM_WORLD, &sendlast);
 
-// TEST
-//printf("Last row was sent in gen %d on process %d\n", gen, rank);
-
-		
 		// Writing the snapshot file
 		if((gen % s == 0) && (s != n)){
 			//writing the temporary grid
@@ -819,14 +764,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 				snap_grid[i] = my_grid[i] & 1;
 			}
 
-// TEST
-//printf("starting gatherv in gen %d on process %d\n", gen, rank);
-
 			MPI_Gatherv((void*)snap_grid, num_cells[rank], MPI_UNSIGNED_CHAR, (void*)grid, num_cells, displs, MPI_UNSIGNED_CHAR, size-1, MPI_COMM_WORLD);
-
-// TEST
-//printf("Gatherv ended in gen %d on process %d\n", gen, rank);
-
 
 			if (rank == size-1){ // The last process will write the snapshot		
 				write_snapshot(grid, 1, xsize, xsize, "./Snapshots/parallel_ordered/snapshot", gen);
