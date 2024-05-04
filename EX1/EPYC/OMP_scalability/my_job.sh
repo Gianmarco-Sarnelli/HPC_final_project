@@ -18,19 +18,19 @@ loc=$(pwd)
 cd ../..
 make parallel.x
 
-datafile=epyc_omp_timing.csv
+datafile=epyc_omp_timing_new.csv
 
 echo "threads_per_socket, ordered_mean, static_mean" > $datafile
 
-mpirun -np 1 -N 1 --map-by socket parallel.x -i -f "initial_10000.pgm" -k 10000
+mpirun -np 1 -N 1 --map-by socket parallel.x -i -f "initial_20000.pgm" -k 20000
 
 
 ## running a single time with only 1 thread to have a serial result
 th_socket=1
 export OMP_NUM_THREADS=$th_socket
 echo -n "${th_socket}," >> $datafile
-(mpirun -np 1 --map-by socket parallel.x -r -f "initial_10000.pgm" -e 0 -n 50 -s 0 -k 10000) >>$datafile
-(mpirun -np 1 --map-by socket parallel.x -r -f "initial_10000.pgm" -e 1 -n 50 -s 0 -k 10000) >>$datafile
+(mpirun -np 1 --map-by socket parallel.x -r -f "initial_20000.pgm" -e 0 -n 50 -s 0 -k 20000) >>$datafile
+(mpirun -np 1 --map-by socket parallel.x -r -f "initial_20000.pgm" -e 1 -n 50 -s 0 -k 20000) >>$datafile
 truncate -s -1 $datafile
 echo >> $datafile
 
@@ -39,8 +39,8 @@ for th_socket in $(seq 4 4 64); do
 
   export OMP_NUM_THREADS=$th_socket
   echo -n "${th_socket}," >> $datafile
-  (mpirun -np 1 --map-by socket parallel.x -r -f "initial_10000.pgm" -e 0 -n 50 -s 0 -k 10000) >>$datafile
-  (mpirun -np 1 --map-by socket parallel.x -r -f "initial_10000.pgm" -e 1 -n 50 -s 0 -k 10000) >>$datafile
+  (mpirun -np 1 --map-by socket parallel.x -r -f "initial_20000.pgm" -e 0 -n 50 -s 0 -k 20000) >>$datafile
+  (mpirun -np 1 --map-by socket parallel.x -r -f "initial_20000.pgm" -e 1 -n 50 -s 0 -k 20000) >>$datafile
   
   truncate -s -1 $datafile  # removing the last comma in the line
   echo >> $datafile # printing the new line in the csv file

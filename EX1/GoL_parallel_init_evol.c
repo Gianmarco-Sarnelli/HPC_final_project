@@ -454,7 +454,7 @@ void ordered_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cel
 	char nei; // Number of alive neighbours
 	char my_current, my_new; // current/new state of the cell. It can be either 1 or 0
 	int y;
-	int stride = 128;  // The minimum size of the fragment of the row in which a thread will work
+	int stride = 640;  // The minimum size of the fragment of the row in which a thread will work
 
 	//This will help in the computation of neighbuouring cells
 	int left_move;    // left_move = -1 + (xsize if x == 0). This will make it go up a row if on the left border

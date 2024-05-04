@@ -1,4 +1,2 @@
-mpicc -fopenmp -march=native -g -IInclude -c GoL_parallel_main.c
 mpicc -fopenmp -march=native -g -IInclude -c GoL_parallel_init_evol.c
-mpicc -fopenmp -march=native -g -IInclude -c GoL_parallel_read_write.c
 mpicc -O3 -fopenmp -march=native -g -Wall -IInclude -lm GoL_parallel_main.o GoL_parallel_init_evol.o GoL_parallel_read_write.o -o parallel.x
