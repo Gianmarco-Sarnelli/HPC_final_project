@@ -39,6 +39,37 @@ for size in 10000 14142 17320 20000; do
   echo >> $datafile # printing the new line in the csv file
 done
 
+## doing it again with more gen
+procs=0
+## increasing the sizes as 10000 * sqrt(num_processes)
+for size in 10000 14142 17320 20000; do
+  mpirun -np 1 -N 1 --map-by socket parallel.x -i -f "initial_${size}.pgm" -k $size
+  procs=$(($procs + 1)) # increasing the number of processes
+  echo -n "${size}," >> $datafile
+  echo -n "${procs},">> $datafile
+  (mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 0 -n 100 -s 0 -k $size) >>$datafile
+  (mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 1 -n 100 -s 0 -k $size) >>$datafile
+
+  truncate -s -1 $datafile  # removing the last comma in the line
+  echo >> $datafile # printing the new line in the csv file
+done
+
+## doing it again with more gen
+procs=0
+## increasing the sizes as 10000 * sqrt(num_processes)
+for size in 10000 14142 17320 20000; do
+  mpirun -np 1 -N 1 --map-by socket parallel.x -i -f "initial_${size}.pgm" -k $size
+  procs=$(($procs + 1)) # increasing the number of processes
+  echo -n "${size}," >> $datafile
+  echo -n "${procs},">> $datafile
+  (mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 0 -n 200 -s 0 -k $size) >>$datafile
+  (mpirun -np $procs --map-by socket parallel.x -r -f "initial_${size}.pgm" -e 1 -n 200 -s 0 -k $size) >>$datafile
+
+  truncate -s -1 $datafile  # removing the last comma in the line
+  echo >> $datafile # printing the new line in the csv file
+done
+
+
 ## Moving the result file into the right folder
 mv $datafile $loc
 

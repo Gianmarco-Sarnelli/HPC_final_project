@@ -108,7 +108,7 @@ void static_evolution(unsigned char *my_grid, unsigned char *grid, int *num_cell
 	// Each process receives its top ghost row from its top neighbour
 	MPI_Irecv(top_ghost_row, xsize, MPI_UNSIGNED_CHAR, top_neighbour, 0,MPI_COMM_WORLD, &recvtop);
 	
-	MPI_Barrier(MPI_COMM_WORLD);
+	//MPI_Barrier(MPI_COMM_WORLD);
 
 	// Starting the iteration on the generations
 	for (int gen=0; gen<n; gen++) {
